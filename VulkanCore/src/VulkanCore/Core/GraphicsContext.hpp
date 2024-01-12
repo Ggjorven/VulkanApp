@@ -32,7 +32,6 @@ namespace VkApp
 		std::vector<VkPresentModeKHR> PresentModes;
 	};
 
-
 	struct VulkanInfo
 	{
 	public:
@@ -68,10 +67,8 @@ namespace VkApp
 
 		uint32_t CurrentFrame = 0;
 	};
-}
 
-namespace VkApp
-{
+
 
 	class GraphicsContext
 	{

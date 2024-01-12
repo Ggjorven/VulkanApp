@@ -23,10 +23,8 @@ void CustomLayer::OnUpdate(float deltaTime)
 void CustomLayer::OnRender()
 {
 	// Vulkan stuff
-	/*
-	auto gc = Application::Get().GetWindow().GetGraphicsContext();
-	if (!gc)
-		std::cout << "Something went wrong" << std::endl;
+	auto vgc = Application::Get().GetWindow().GetGraphicsContext();
+	auto& vi = vgc->GetVulkanInfo();
 
 	// Run some vulkan code
 	vkWaitForFences(vi.LogicalDevice, 1, &vi.InFlightFences[vi.CurrentFrame], VK_TRUE, UINT64_MAX);
@@ -86,8 +84,7 @@ void CustomLayer::OnRender()
 	else if (result != VK_SUCCESS)
 		throw std::runtime_error("Failed to present swap chain image!");
 
-	vi.CurrentFrame = (vi.CurrentFrame + 1) & VulkanContext::MAX_FRAMES_IN_FLIGHT; // We use the & operator since MAX_FRAMES_IN_FLIGHT is a power of 2 and this is a lot cheaper, if it's not use the % operator
-	*/
+	vi.CurrentFrame = (vi.CurrentFrame + 1) & GraphicsContext::MAX_FRAMES_IN_FLIGHT; // We use the & operator since MAX_FRAMES_IN_FLIGHT is a power of 2 and this is a lot cheaper, if it's not use the % operator
 }
 
 void CustomLayer::OnImGuiRender()

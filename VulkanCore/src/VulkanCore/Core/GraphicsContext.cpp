@@ -97,7 +97,7 @@ namespace VkApp
 		CreateSwapChain();
 		CreateImageViews();
 		CreateRenderPass();
-		CreateGraphicsPipeline(); // Maybe remove and let user do this?
+		CreateGraphicsPipeline(); // Create a default pipeline
 		CreateFramebuffers();
 		CreateCommandPool();
 		CreateCommandBuffers();
@@ -487,9 +487,9 @@ namespace VkApp
 
 	void GraphicsContext::CreateGraphicsPipeline()
 	{
-		// TODO(Jorben): Make this not just do this but create something useful
-		auto vertShaderCode = ReadFile("E:\\Code\\C++\\VS\\CryApp\\Sandbox\\assets\\shaders\\vert.spv");
-		auto fragShaderCode = ReadFile("E:\\Code\\C++\\VS\\CryApp\\Sandbox\\assets\\shaders\\frag.spv");
+		// Default triangle shader
+		auto vertShaderCode = ReadFile("assets\\shaders\\vert.spv");
+		auto fragShaderCode = ReadFile("assets\\shaders\\frag.spv");
 
 		VkShaderModule vertShaderModule = CreateShaderModule(vertShaderCode);
 		VkShaderModule fragShaderModule = CreateShaderModule(fragShaderCode);
@@ -574,7 +574,7 @@ namespace VkApp
 		if (vkCreatePipelineLayout(m_Info.LogicalDevice, &pipelineLayoutInfo, nullptr, &m_Info.PipelineLayout) != VK_SUCCESS)
 			throw std::runtime_error("failed to create pipeline layout!");
 
-		// Create the actual graphcis pipeline (where we actually use the shaders and other info)
+		// Create the actual graphics pipeline (where we actually use the shaders and other info)
 		VkGraphicsPipelineCreateInfo pipelineInfo = {};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipelineInfo.stageCount = 2;
