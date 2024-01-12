@@ -1,7 +1,7 @@
 #include "vcpch.h"
 #include "GraphicsContext.hpp"
 
-#include <iostream> // TODO(Jorben): Remove once implemented logging.
+#include "VulkanCore/Core/Logging.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -61,9 +61,8 @@ namespace VkApp
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData)
 	{
-		// TODO(Jorben): Implement logging.
 		if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-			std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+			VKAPP_LOG_WARN("Validation layer: {0}", pCallbackData->pMessage);
 
 		return VK_FALSE;
 	}
@@ -83,8 +82,8 @@ namespace VkApp
 	GraphicsContext::GraphicsContext(GLFWwindow* window)
 		: m_WindowHandle(window)
 	{
-		// TODO(Jorben): Implement logging.
-		if (window == nullptr); //CR_CORE_ASSERT(false, "Window handle passed in is NULL!");
+		if (window == nullptr) 
+			VKAPP_LOG_ERROR("Window handle passed in is NULL");
 	}
 
 	void GraphicsContext::Init()

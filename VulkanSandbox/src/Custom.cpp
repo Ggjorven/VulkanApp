@@ -5,6 +5,7 @@
 
 #include <VulkanCore/Core/Application.hpp>
 #include <VulkanCore/Core/API.hpp>
+#include <VulkanCore/Core/Logging.hpp>
 
 #include <vulkan/vulkan.h>
 

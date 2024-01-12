@@ -2,8 +2,8 @@
 #include "WindowsWindow.hpp"
 
 #include "VulkanCore/Core/API.hpp"
-
 #include "VulkanCore/Core/Events.hpp"
+#include "VulkanCore/Core/Logging.hpp"
 
 //#include "Crystal/Core/Events/Input/Input.hpp"
 
@@ -17,7 +17,7 @@ namespace VkApp
 	{
 		if (!Init(properties))
 		{
-			// TODO(Jorben): Implement logging
+			VKAPP_LOG_ERROR("{0}", "WindowsWindow failed to initialize.");
 			return;
 		}
 	}
@@ -39,7 +39,8 @@ namespace VkApp
 
 	void WindowsWindow::SetVSync(bool enabled)
 	{
-		glfwSwapInterval(enabled);
+		// TODO(Jorben): Set this for vulkan
+		//glfwSwapInterval(enabled);
 		m_Data.Vsync = enabled;
 	}
 	
@@ -51,7 +52,7 @@ namespace VkApp
 			int succes = glfwInit();
 			if (!succes)
 			{
-				// TODO(Jorben): Implement logging
+				VKAPP_LOG_ERROR("glfwInit() failed");
 				return 0;
 			}
 			s_GLFWinitialized = true;
@@ -183,7 +184,7 @@ namespace VkApp
 
 	void WindowsWindow::ErrorCallBack(int errorCode, const char* description)
 	{
-		// TODO(Jorben): Implement logging.
+		VKAPP_LOG_ERROR("[GLFW]: ({0}), {1}", errorCode, description);
 	}
 
 }

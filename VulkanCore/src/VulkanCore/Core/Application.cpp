@@ -3,6 +3,8 @@
 
 #include <GLFW/glfw3.h>
 
+#include "VulkanCore/Core/Logging.hpp"
+
 namespace VkApp
 {
 
@@ -82,6 +84,8 @@ namespace VkApp
 	void Application::Init(const AppInfo& appInfo)
 	{
 		s_Instance = this;
+
+		Log::Init();
 
 		m_Window = Window::Create(appInfo.WindowProperties);
 		m_Window->SetEventCallBack(VKAPP_BIND_EVENT_FN(Application::OnEvent));
