@@ -12,8 +12,96 @@
 const std::vector<GraphicsContext::Vertex> vertices = {
 	{{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
 	{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+	{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+
+	{{0.0f, -0.3f}, {1.0f, 0.0f, 0.0f}},
+	{{0.3f, 0.3f}, {0.0f, 1.0f, 0.0f}},
+	{{-0.3f, 0.3f}, {0.0f, 0.0f, 1.0f}}
+};
+
+/*
+const std::vector<GraphicsContext::Vertex> vertices = {
+	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}},
+	{{-0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+	{{0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}},
+
+	{{0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
 	{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
 };
+*/
+
+static void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) 
+{
+	// Vulkan stuff
+	auto vgc = Application::Get().GetWindow().GetGraphicsContext();
+	auto& vi = vgc->GetVulkanInfo();
+
+	VkBufferCreateInfo bufferInfo = {};
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferInfo.size = size;
+	bufferInfo.usage = usage;
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	if (vkCreateBuffer(vi.LogicalDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+		throw std::runtime_error("failed to create buffer!");
+
+	VkMemoryRequirements memRequirements = {};
+	vkGetBufferMemoryRequirements(vi.LogicalDevice, buffer, &memRequirements);
+
+	VkMemoryAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memRequirements.size;
+	allocInfo.memoryTypeIndex = vgc->FindMemoryType(memRequirements.memoryTypeBits, properties);
+
+	if (vkAllocateMemory(vi.LogicalDevice, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+		throw std::runtime_error("failed to allocate buffer memory!");
+
+	vkBindBufferMemory(vi.LogicalDevice, buffer, bufferMemory, 0);
+}
+
+static void CopyBuffer(VkBuffer& srcBuffer, VkBuffer& dstBuffer, VkDeviceSize& size)
+{
+	// Vulkan stuff
+	auto vgc = Application::Get().GetWindow().GetGraphicsContext();
+	auto& vi = vgc->GetVulkanInfo();
+
+	VkCommandBufferAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = vi.CommandPool;
+	allocInfo.commandBufferCount = 1;
+
+	// Create a new command buffer
+	VkCommandBuffer commandBuffer = {};
+	vkAllocateCommandBuffers(vi.LogicalDevice, &allocInfo, &commandBuffer);
+
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+	VkBufferCopy copyRegion = {};
+	copyRegion.srcOffset = 0; // Optional
+	copyRegion.dstOffset = 0; // Optional
+	copyRegion.size = size;
+	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+	// We recorded a copy command.
+	vkEndCommandBuffer(commandBuffer);
+
+	// Let's execute it
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+	vkQueueSubmit(vi.GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(vi.GraphicsQueue);
+
+	vkFreeCommandBuffers(vi.LogicalDevice, vi.CommandPool, 1, &commandBuffer);
+}
 
 void CustomLayer::OnAttach()
 {
@@ -21,35 +109,23 @@ void CustomLayer::OnAttach()
 	auto vgc = Application::Get().GetWindow().GetGraphicsContext();
 	auto& vi = vgc->GetVulkanInfo();
 
-	// Create buffer info
-	VkBufferCreateInfo bufferInfo{};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size = sizeof(vertices[0]) * vertices.size();
-	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
-	if (vkCreateBuffer(vi.LogicalDevice, &bufferInfo, nullptr, &m_VertexBuffer) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create vertex buffer!");
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+	CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
-	VkMemoryRequirements memRequirements = {};
-	vkGetBufferMemoryRequirements(vi.LogicalDevice, m_VertexBuffer, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = vgc->FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-	if (vkAllocateMemory(vi.LogicalDevice, &allocInfo, nullptr, &m_VertexBufferMemory) != VK_SUCCESS)
-		throw std::runtime_error("Failed to allocate vertex buffer memory!");
-
-	// Bind the memory to vertex buffer
-	vkBindBufferMemory(vi.LogicalDevice, m_VertexBuffer, m_VertexBufferMemory, 0);
-
-	// Filling the vertex buffer
 	void* data;
-	vkMapMemory(vi.LogicalDevice, m_VertexBufferMemory, 0, bufferInfo.size, 0, &data);
-	memcpy(data, vertices.data(), (size_t)bufferInfo.size);
-	vkUnmapMemory(vi.LogicalDevice, m_VertexBufferMemory);
+	vkMapMemory(vi.LogicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+	memcpy(data, vertices.data(), (size_t)bufferSize);
+	vkUnmapMemory(vi.LogicalDevice, stagingBufferMemory);
+
+	CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_VertexBuffer, m_VertexBufferMemory);
+	CopyBuffer(stagingBuffer, m_VertexBuffer, bufferSize);
+
+	// Free the staging buffer
+	vkDestroyBuffer(vi.LogicalDevice, stagingBuffer, nullptr);
+	vkFreeMemory(vi.LogicalDevice, stagingBufferMemory, nullptr);
 }
 
 void CustomLayer::OnDetach()
@@ -57,6 +133,8 @@ void CustomLayer::OnDetach()
 	// Vulkan stuff
 	auto vgc = Application::Get().GetWindow().GetGraphicsContext();
 	auto& vi = vgc->GetVulkanInfo();
+
+	vkDeviceWaitIdle(vi.LogicalDevice);
 
 	vkDestroyBuffer(vi.LogicalDevice, m_VertexBuffer, nullptr);
 	vkFreeMemory(vi.LogicalDevice, m_VertexBufferMemory, nullptr);
