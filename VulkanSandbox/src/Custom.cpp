@@ -9,12 +9,57 @@
 
 #include <vulkan/vulkan.h>
 
+const std::vector<GraphicsContext::Vertex> vertices = {
+	{{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+	{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+	{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+};
+
 void CustomLayer::OnAttach()
 {
+	// Vulkan stuff
+	auto vgc = Application::Get().GetWindow().GetGraphicsContext();
+	auto& vi = vgc->GetVulkanInfo();
+
+	// Create buffer info
+	VkBufferCreateInfo bufferInfo{};
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferInfo.size = sizeof(vertices[0]) * vertices.size();
+	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	if (vkCreateBuffer(vi.LogicalDevice, &bufferInfo, nullptr, &m_VertexBuffer) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create vertex buffer!");
+
+	VkMemoryRequirements memRequirements = {};
+	vkGetBufferMemoryRequirements(vi.LogicalDevice, m_VertexBuffer, &memRequirements);
+
+	VkMemoryAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memRequirements.size;
+	allocInfo.memoryTypeIndex = vgc->FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+	if (vkAllocateMemory(vi.LogicalDevice, &allocInfo, nullptr, &m_VertexBufferMemory) != VK_SUCCESS)
+		throw std::runtime_error("Failed to allocate vertex buffer memory!");
+
+	// Bind the memory to vertex buffer
+	vkBindBufferMemory(vi.LogicalDevice, m_VertexBuffer, m_VertexBufferMemory, 0);
+
+	// Filling the vertex buffer
+	void* data;
+	vkMapMemory(vi.LogicalDevice, m_VertexBufferMemory, 0, bufferInfo.size, 0, &data);
+	memcpy(data, vertices.data(), (size_t)bufferInfo.size);
+	vkUnmapMemory(vi.LogicalDevice, m_VertexBufferMemory);
 }
 
 void CustomLayer::OnDetach()
 {
+	// Vulkan stuff
+	auto vgc = Application::Get().GetWindow().GetGraphicsContext();
+	auto& vi = vgc->GetVulkanInfo();
+
+	vkDestroyBuffer(vi.LogicalDevice, m_VertexBuffer, nullptr);
+	vkFreeMemory(vi.LogicalDevice, m_VertexBufferMemory, nullptr);
 }
 
 void CustomLayer::OnUpdate(float deltaTime)
@@ -45,7 +90,13 @@ void CustomLayer::OnRender()
 	vkResetFences(vi.LogicalDevice, 1, &vi.InFlightFences[vi.CurrentFrame]);
 
 	vkResetCommandBuffer(vi.CommandBuffers[vi.CurrentFrame], 0);
-	vgc->RecordCommandBuffer(vi.CommandBuffers[vi.CurrentFrame], imageIndex);
+
+	// Custom struct, remove?
+	RenderInfo info = {};
+	info.VertexBuffers.push_back(m_VertexBuffer);
+	info.VerticeCount = vertices.size();
+
+	vgc->RecordCommandBuffer(vi.CommandBuffers[vi.CurrentFrame], imageIndex, info);
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

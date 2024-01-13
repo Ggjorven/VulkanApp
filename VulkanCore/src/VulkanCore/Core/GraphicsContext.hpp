@@ -1,12 +1,16 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <optional>
 #include <filesystem>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
+
+// We use this for the default graphics pipeline
+#include <glm/glm.hpp>
 
 namespace VkApp
 {
@@ -68,7 +72,13 @@ namespace VkApp
 		uint32_t CurrentFrame = 0;
 	};
 
-
+	struct RenderInfo
+	{
+	public:
+		std::vector<VkBuffer> VertexBuffers = { };
+		std::vector<VkDeviceSize> Offsets = { {0} };
+		uint32_t VerticeCount = 0u;
+	};
 
 	class GraphicsContext
 	{
@@ -83,7 +93,9 @@ namespace VkApp
 		VulkanInfo& GetVulkanInfo() { return m_Info; }
 
 		void RecreateSwapChain();
-		void RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex);
+		void RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, const RenderInfo& info);
+
+		uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 		static constexpr const int32_t MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -120,6 +132,45 @@ namespace VkApp
 		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
 		static std::vector<char> ReadFile(const std::filesystem::path& filename);
+
+	// Note(Jorben): The public specifier is set here on purpose so the functions are readable and this struct is not in the middle of it.
+	public:
+		// For the default graphics pipeline
+		struct Vertex
+		{
+		public:
+			glm::vec2 Position = { };
+			glm::vec3 Colour = { };
+
+			static VkVertexInputBindingDescription GetBindingDescription()
+			{
+				VkVertexInputBindingDescription bindingDescription = {};
+				bindingDescription.binding = 0;
+				bindingDescription.stride = sizeof(Vertex);
+				bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+				return bindingDescription;
+			}
+
+			static std::array<VkVertexInputAttributeDescription, 2> GetAttributeDescriptions() 
+			{
+				std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+
+				// Position
+				attributeDescriptions[0].binding = 0;
+				attributeDescriptions[0].location = 0;
+				attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+				attributeDescriptions[0].offset = offsetof(Vertex, Position);
+
+				// Colour
+				attributeDescriptions[1].binding = 0;
+				attributeDescriptions[1].location = 1;
+				attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+				attributeDescriptions[1].offset = offsetof(Vertex, Colour);
+
+				return attributeDescriptions;
+			}
+		};
 
 	private:
 		GLFWwindow* m_WindowHandle;

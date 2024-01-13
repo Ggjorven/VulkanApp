@@ -1,5 +1,7 @@
 #include <VulkanCore/Core/Layer.hpp>
 
+#include <vulkan/vulkan.h>
+
 using namespace VkApp;
 
 // Create a custom layer with custom logic
@@ -17,4 +19,8 @@ public:
 
 private:
 	bool HandleWindowResize(WindowResizeEvent& e);
+
+private:
+	VkBuffer m_VertexBuffer = VK_NULL_HANDLE;
+	VkDeviceMemory m_VertexBufferMemory = VK_NULL_HANDLE;
 };

@@ -158,7 +158,7 @@ namespace VkApp
 		CreateFramebuffers();
 	}
 
-	void GraphicsContext::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex)
+	void GraphicsContext::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, const RenderInfo& info)
 	{
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -195,12 +195,29 @@ namespace VkApp
 		scissor.extent = m_Info.SwapChainExtent;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+		// TODO(Jorben): Make this not be done here
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, info.VertexBuffers.data(), info.Offsets.data());
+
+		vkCmdDraw(commandBuffer, info.VerticeCount, 1, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffer);
 
 		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
 			throw std::runtime_error("Failed to record command buffer!");
+	}
+
+	uint32_t GraphicsContext::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+	{
+		VkPhysicalDeviceMemoryProperties memProperties = {};
+		vkGetPhysicalDeviceMemoryProperties(m_Info.PhysicalDevice, &memProperties);
+
+		for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) 
+		{
+			if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+				return i;
+		}
+
+		throw std::runtime_error("Failed to find suitable memory type!");
 	}
 
 	void GraphicsContext::CreateInstance()
@@ -510,10 +527,15 @@ namespace VkApp
 		// PipelineShader info
 		VkPipelineShaderStageCreateInfo shaderStages[2] = { vertShaderStageInfo, fragShaderStageInfo };
 
+		auto bindingDescription = Vertex::GetBindingDescription();
+		auto attributeDescriptions = Vertex::GetAttributeDescriptions();
+
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = 0;
-		vertexInputInfo.vertexAttributeDescriptionCount = 0;
+		vertexInputInfo.vertexBindingDescriptionCount = 1;
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
