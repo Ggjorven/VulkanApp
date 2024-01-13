@@ -76,8 +76,9 @@ namespace VkApp
 	{
 	public:
 		std::vector<VkBuffer> VertexBuffers = { };
+		VkBuffer IndexBuffer = VK_NULL_HANDLE;
 		std::vector<VkDeviceSize> Offsets = { {0} };
-		uint32_t VerticeCount = 0u;
+		uint32_t IndiceCount = 0u;
 	};
 
 	class GraphicsContext

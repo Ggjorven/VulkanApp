@@ -197,8 +197,9 @@ namespace VkApp
 
 		// TODO(Jorben): Make this not be done here
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, info.VertexBuffers.data(), info.Offsets.data());
+		vkCmdBindIndexBuffer(commandBuffer, info.IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-		vkCmdDraw(commandBuffer, info.VerticeCount, 1, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, info.IndiceCount, 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffer);
 

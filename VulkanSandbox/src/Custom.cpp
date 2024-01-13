@@ -10,26 +10,15 @@
 #include <vulkan/vulkan.h>
 
 const std::vector<GraphicsContext::Vertex> vertices = {
-	{{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
-	{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-
-	{{0.0f, -0.3f}, {1.0f, 0.0f, 0.0f}},
-	{{0.3f, 0.3f}, {0.0f, 1.0f, 0.0f}},
-	{{-0.3f, 0.3f}, {0.0f, 0.0f, 1.0f}}
-};
-
-/*
-const std::vector<GraphicsContext::Vertex> vertices = {
-	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}},
-	{{-0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}},
-
-	{{0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
 	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
 };
-*/
+
+const std::vector<uint16_t> indices = {
+	0, 1, 2, 2, 3, 0
+};
 
 static void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) 
 {
@@ -109,6 +98,7 @@ void CustomLayer::OnAttach()
 	auto vgc = Application::Get().GetWindow().GetGraphicsContext();
 	auto& vi = vgc->GetVulkanInfo();
 
+	// ------------------- Vertex buffer ----------------------------
 	VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
 	VkBuffer stagingBuffer;
@@ -126,6 +116,27 @@ void CustomLayer::OnAttach()
 	// Free the staging buffer
 	vkDestroyBuffer(vi.LogicalDevice, stagingBuffer, nullptr);
 	vkFreeMemory(vi.LogicalDevice, stagingBufferMemory, nullptr);
+	// ------------------- Vertex buffer ----------------------------
+	// 
+	// ------------------- Index buffer ----------------------------
+	VkDeviceSize bufferSize2 = sizeof(indices[0]) * indices.size();
+
+	VkBuffer stagingBuffer2;
+	VkDeviceMemory stagingBufferMemory2;
+	CreateBuffer(bufferSize2, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer2, stagingBufferMemory2);
+
+	void* data2;
+	vkMapMemory(vi.LogicalDevice, stagingBufferMemory2, 0, bufferSize2, 0, &data2);
+	memcpy(data2, indices.data(), (size_t)bufferSize2);
+	vkUnmapMemory(vi.LogicalDevice, stagingBufferMemory2);
+
+	CreateBuffer(bufferSize2, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_IndexBuffer, m_IndexBufferMemory);
+	CopyBuffer(stagingBuffer2, m_IndexBuffer, bufferSize2);
+
+	// Free the staging buffer
+	vkDestroyBuffer(vi.LogicalDevice, stagingBuffer2, nullptr);
+	vkFreeMemory(vi.LogicalDevice, stagingBufferMemory2, nullptr);
+	// ------------------- Index buffer ----------------------------
 }
 
 void CustomLayer::OnDetach()
@@ -138,6 +149,9 @@ void CustomLayer::OnDetach()
 
 	vkDestroyBuffer(vi.LogicalDevice, m_VertexBuffer, nullptr);
 	vkFreeMemory(vi.LogicalDevice, m_VertexBufferMemory, nullptr);
+
+	vkDestroyBuffer(vi.LogicalDevice, m_IndexBuffer, nullptr);
+	vkFreeMemory(vi.LogicalDevice, m_IndexBufferMemory, nullptr);
 }
 
 void CustomLayer::OnUpdate(float deltaTime)
@@ -172,7 +186,8 @@ void CustomLayer::OnRender()
 	// Custom struct, remove?
 	RenderInfo info = {};
 	info.VertexBuffers.push_back(m_VertexBuffer);
-	info.VerticeCount = vertices.size();
+	info.IndexBuffer = m_IndexBuffer;
+	info.IndiceCount = indices.size();
 
 	vgc->RecordCommandBuffer(vi.CommandBuffers[vi.CurrentFrame], imageIndex, info);
 
