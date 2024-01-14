@@ -15,7 +15,7 @@ Welcome to **VulkanApp**, a comprehensive starting point for creating Vulkan-bas
 To get started with VulkanApp:
 
 1. **Clone the Repository**
-- `git clone https://github.com/ggjorven/VulkanApp.git 
+- `git clone https://github.com/ggjorven/VulkanApp.git`
 
 2. **Install Dependencies**
 Ensure you have Vulkan SDK installed.
@@ -39,6 +39,5 @@ Contributions are what make the open source community an amazing place to learn,
 ## License
 
 Distributed under the Apcache 2.0 License. See `LICENSE.txt` for more information.
----
 
 *This README is maintained by ggjorven, the creator and maintainer of VulkanApp.*
