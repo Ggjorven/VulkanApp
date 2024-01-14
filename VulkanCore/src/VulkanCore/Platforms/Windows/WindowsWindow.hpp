@@ -1,7 +1,6 @@
 #pragma once
 
 #include "VulkanCore/Core/Window.hpp"
-#include "VulkanCore/Core/GraphicsContext.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -19,7 +18,6 @@ namespace VkApp
 		void OnUpdate() override;
 		void OnRender() override;
 
-		//Window
 		uint32_t GetWidth() const override { return m_Data.Width; }
 		uint32_t GetHeight() const override { return m_Data.Height; }
 
@@ -27,8 +25,6 @@ namespace VkApp
 		bool IsVSync() const override { return m_Data.Vsync; }
 
 		void* GetNativeWindow() const override { return (void*)m_Window; }
-
-		std::shared_ptr<GraphicsContext> GetGraphicsContext() override { return m_Context; }
 
 	private:
 		bool Init(WindowProperties properties);
@@ -41,7 +37,6 @@ namespace VkApp
 		static uint32_t s_Instances;
 
 		GLFWwindow* m_Window;
-		std::shared_ptr<GraphicsContext> m_Context;
 		WindowData m_Data;
 
 	};
