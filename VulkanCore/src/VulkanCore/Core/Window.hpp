@@ -6,14 +6,10 @@
 
 #include "VulkanCore/Core/Events.hpp"
 
-#include "VulkanCore/Core/GraphicsContext.hpp"
-
 namespace VkApp
 {
 
 	using EventCallBackFunction = std::function<void(Event&)>;
-
-
 
 	struct WindowProperties
 	{
@@ -78,8 +74,6 @@ namespace VkApp
 		virtual bool IsVSync() const = 0;
 
 		virtual void* GetNativeWindow() const = 0;
-
-		virtual std::shared_ptr<GraphicsContext> GetGraphicsContext() = 0;
 
 		static std::unique_ptr<Window> Create(const WindowProperties properties = WindowProperties());
 	};

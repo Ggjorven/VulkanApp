@@ -5,6 +5,8 @@
 
 #include "VulkanCore/Core/Logging.hpp"
 
+#include "VulkanCore/Renderer/Renderer.hpp"
+
 namespace VkApp
 {
 
@@ -24,7 +26,7 @@ namespace VkApp
 			delete layer;
 		}
 
-		m_API->Destroy();
+		Renderer::Destroy();
 	}
 
 	void Application::OnEvent(Event& e)
@@ -62,6 +64,8 @@ namespace VkApp
 				layer->OnRender();
 			}
 
+			Renderer::Display();
+
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_LayerStack)
 				layer->OnImGuiRender();
@@ -90,8 +94,7 @@ namespace VkApp
 		m_Window = Window::Create(appInfo.WindowProperties);
 		m_Window->SetEventCallBack(VKAPP_BIND_EVENT_FN(Application::OnEvent));
 
-		m_API = API::Create();
-		m_API->Init();
+		Renderer::Init();
 
 		//Add ImGui
 		m_ImGuiLayer = new BaseImGuiLayer();
@@ -114,6 +117,7 @@ namespace VkApp
 		}
 
 		m_Minimized = false;
+		Renderer::OnResize(e.GetWidth(), e.GetHeight());
 
 		return false;
 	}

@@ -1,7 +1,6 @@
 #include "vcpch.h"
 #include "WindowsWindow.hpp"
 
-#include "VulkanCore/Core/API.hpp"
 #include "VulkanCore/Core/Events.hpp"
 #include "VulkanCore/Core/Logging.hpp"
 
@@ -34,7 +33,6 @@ namespace VkApp
 
 	void WindowsWindow::OnRender()
 	{
-		m_Context->SwapBuffers();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)
@@ -67,10 +65,6 @@ namespace VkApp
 		s_Instances++;
 
 		glfwSetWindowUserPointer(m_Window, &m_Data); //So we can access/get to the data in lambda functions
-
-		//Graphics context init 
-		m_Context = GraphicsContext::Create(m_Window);
-		m_Context->Init();
 		SetVSync(properties.VSync);
 
 		//Set window position
@@ -173,8 +167,6 @@ namespace VkApp
 
 	void WindowsWindow::Shutdown()
 	{
-		m_Context->Destroy();
-
 		glfwDestroyWindow(m_Window);
 		s_Instances--;
 

@@ -6,7 +6,6 @@
 #include <backends/imgui_impl_opengl3.h>
 
 #include "VulkanCore/Core/Application.hpp"
-#include "VulkanCore/Core/API.hpp"
 
 #include <GLFW/glfw3.h>
 

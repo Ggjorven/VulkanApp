@@ -18,9 +18,6 @@ public:
 	void OnEvent(Event& e) override;
 
 private:
-	bool HandleWindowResize(WindowResizeEvent& e);
-
-private:
 	VkBuffer m_VertexBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory m_VertexBufferMemory = VK_NULL_HANDLE;
 
