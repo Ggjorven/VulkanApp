@@ -4,7 +4,6 @@
 
 using namespace VkApp;
 
-// Create a custom layer with custom logic
 class CustomLayer : public Layer
 {
 public:
@@ -23,4 +22,4 @@ private:
 
 	VkBuffer m_IndexBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory m_IndexBufferMemory = VK_NULL_HANDLE;
-};
+};S

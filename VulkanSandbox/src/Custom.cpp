@@ -49,10 +49,10 @@ void CustomLayer::OnRender()
 	Renderer::AddToQueue([this](VkCommandBuffer& buffer)
 		{
 			std::vector<VkDeviceSize> offsets = { {0} };
-
+	
 			vkCmdBindVertexBuffers(buffer, 0, 1, &m_VertexBuffer, offsets.data());
 			vkCmdBindIndexBuffer(buffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
+	
 			vkCmdDrawIndexed(buffer, indices.size(), 1, 0, 0, 0);
 		});
 }
