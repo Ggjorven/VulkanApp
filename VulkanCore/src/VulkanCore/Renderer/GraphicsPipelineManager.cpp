@@ -8,6 +8,7 @@
 
 #include "VulkanCore/Core/Application.hpp"
 
+#include "VulkanCore/Renderer/Renderer.hpp"
 #include "VulkanCore/Renderer/InstanceManager.hpp" // For the retrieval of the logical device
 #include "VulkanCore/Renderer/SwapChainManager.hpp"
 
@@ -31,16 +32,29 @@ namespace VkApp
 		s_InstanceManager = InstanceManager::Get();
 
 		// Note(Jorben): Creates a default pipeline for drawing triangles using the custom Vertex struct
+		CreateDescriptorSetLayout(); // TODO(Jorben): Remove?
 		CreateGraphicsPipeline();
+		CreateDescriptorPool(); // TODO(Jorben): Remove?
+		CreateDescriptorSets(); // TODO(Jorben): Remove?
 	}
 
 	void GraphicsPipelineManager::Destroy()
 	{
-		vkDestroyPipeline(s_InstanceManager->m_Device, m_GraphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(s_InstanceManager->m_Device, m_PipelineLayout, nullptr);
+		DestroyCurrentPipeline();
 
 		s_InstanceManager = nullptr;
 		s_Instance = nullptr;
+	}
+
+	void GraphicsPipelineManager::DestroyCurrentPipeline()
+	{
+		vkDeviceWaitIdle(s_InstanceManager->m_Device);
+
+		vkDestroyPipeline(s_InstanceManager->m_Device, m_GraphicsPipeline, nullptr);
+		vkDestroyPipelineLayout(s_InstanceManager->m_Device, m_PipelineLayout, nullptr);
+
+		vkDestroyDescriptorPool(s_InstanceManager->m_Device, m_DescriptorPool, nullptr);
+		vkDestroyDescriptorSetLayout(s_InstanceManager->m_Device, m_DescriptorLayout, nullptr);
 	}
 
 	std::vector<char> GraphicsPipelineManager::ReadFile(const std::filesystem::path& path)
@@ -77,6 +91,24 @@ namespace VkApp
 	// ===================================
 	// -------- Initialization -----------
 	// ===================================
+	void GraphicsPipelineManager::CreateDescriptorSetLayout() // TODO(Jorben): Remove this sometime
+	{
+		VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+		uboLayoutBinding.binding = 0;
+		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uboLayoutBinding.descriptorCount = 1;
+		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutInfo.bindingCount = 1;
+		layoutInfo.pBindings = &uboLayoutBinding;
+
+		if (vkCreateDescriptorSetLayout(s_InstanceManager->m_Device, &layoutInfo, nullptr, &m_DescriptorLayout) != VK_SUCCESS)
+			VKAPP_LOG_ERROR("Failed to create descriptor set layout!");
+	}
+
 	void GraphicsPipelineManager::CreateGraphicsPipeline()
 	{
 		// Note(Jorben): This is reading a default triangle shader
@@ -130,7 +162,7 @@ namespace VkApp
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
 		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
 
 		VkPipelineMultisampleStateCreateInfo multisampling = {};
@@ -165,8 +197,9 @@ namespace VkApp
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = 0;
-		pipelineLayoutInfo.pushConstantRangeCount = 0;
+		//pipelineLayoutInfo.pushConstantRangeCount = 0;
+		pipelineLayoutInfo.setLayoutCount = 1;					// TODO(Jorben): Remove?
+		pipelineLayoutInfo.pSetLayouts = &m_DescriptorLayout;	// TODO(Jorben): Remove?
 
 		if (vkCreatePipelineLayout(s_InstanceManager->m_Device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS)
 			VKAPP_LOG_ERROR("Failed to create pipeline layout!");
@@ -196,6 +229,38 @@ namespace VkApp
 		// Destroy at the end
 		vkDestroyShaderModule(s_InstanceManager->m_Device, fragShaderModule, nullptr);
 		vkDestroyShaderModule(s_InstanceManager->m_Device, vertShaderModule, nullptr);
+	}
+
+	void GraphicsPipelineManager::CreateDescriptorPool()
+	{
+		VkDescriptorPoolSize poolSize = {};
+		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSize.descriptorCount = static_cast<uint32_t>(VKAPP_MAX_FRAMES_IN_FLIGHT);
+
+		VkDescriptorPoolCreateInfo poolInfo = {};
+		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolInfo.poolSizeCount = 1;
+		poolInfo.pPoolSizes = &poolSize;
+		poolInfo.maxSets = static_cast<uint32_t>(VKAPP_MAX_FRAMES_IN_FLIGHT);
+
+		if (vkCreateDescriptorPool(s_InstanceManager->m_Device, &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS)
+			VKAPP_LOG_ERROR("Failed to create descriptor pool!");
+	}
+
+	void GraphicsPipelineManager::CreateDescriptorSets()
+	{
+		std::vector<VkDescriptorSetLayout> layouts(VKAPP_MAX_FRAMES_IN_FLIGHT, m_DescriptorLayout);
+
+		VkDescriptorSetAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocInfo.descriptorPool = m_DescriptorPool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(VKAPP_MAX_FRAMES_IN_FLIGHT);
+		allocInfo.pSetLayouts = layouts.data();
+
+		m_DescriptorSets.resize(VKAPP_MAX_FRAMES_IN_FLIGHT);
+
+		if (vkAllocateDescriptorSets(s_InstanceManager->m_Device, &allocInfo, m_DescriptorSets.data()) != VK_SUCCESS)
+			VKAPP_LOG_ERROR("Failed to allocate descriptor sets!");
 	}
 
 	// ===================================

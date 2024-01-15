@@ -21,6 +21,7 @@ namespace VkApp
 		void RecreateSwapChain();
 
 		VkRenderPass& GetRenderPass() { return m_RenderPass; }
+		VkExtent2D& GetExtent() { return m_SwapChainExtent;  }
 
 	private: // Initialization functions
 		void CreateSwapChain();

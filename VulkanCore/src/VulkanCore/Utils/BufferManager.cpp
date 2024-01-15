@@ -5,6 +5,7 @@
 
 #include "VulkanCore/Renderer/Renderer.hpp"
 #include "VulkanCore/Renderer/InstanceManager.hpp"
+#include "VulkanCore/Renderer/SwapChainManager.hpp"
 
 namespace VkApp
 {
@@ -136,6 +137,21 @@ namespace VkApp
 		// Free the staging buffer
 		vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
 		vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
+	}
+
+	void BufferManager::CreateUniformBuffer(std::vector<VkBuffer>& buffers, VkDeviceSize size, std::vector<VkDeviceMemory>& buffersMemory, std::vector<void*>& mappedBuffers)
+	{
+		auto logicalDevice = InstanceManager::Get()->GetLogicalDevice();
+
+		buffers.resize(VKAPP_MAX_FRAMES_IN_FLIGHT);
+		buffersMemory.resize(VKAPP_MAX_FRAMES_IN_FLIGHT);
+		mappedBuffers.resize(VKAPP_MAX_FRAMES_IN_FLIGHT);
+
+		for (size_t i = 0; i < VKAPP_MAX_FRAMES_IN_FLIGHT; i++) {
+			CreateBuffer(size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffers[i], buffersMemory[i]);
+
+			vkMapMemory(logicalDevice, buffersMemory[i], 0, size, 0, &mappedBuffers[i]);
+		}
 	}
 
 }

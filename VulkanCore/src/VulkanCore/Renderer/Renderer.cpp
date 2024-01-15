@@ -226,7 +226,7 @@ namespace VkApp
 
 		// Run the queue of commands
 		for (auto& func : m_RenderQueue)
-			func(commandBuffer);
+			func(commandBuffer, imageIndex);
 
 		vkCmdEndRenderPass(commandBuffer);
 

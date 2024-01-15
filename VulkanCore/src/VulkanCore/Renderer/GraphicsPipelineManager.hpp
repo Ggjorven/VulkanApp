@@ -51,6 +51,7 @@ namespace VkApp
 		}
 	};
 
+	// TODO(Jorben): Create a nice way to create a new pipeline with descriptor sets and everything.
 	class GraphicsPipelineManager
 	{
 	public: // Public functions
@@ -59,11 +60,19 @@ namespace VkApp
 		GraphicsPipelineManager();
 		void Destroy();
 
+		void DestroyCurrentPipeline();
+
 		static std::vector<char> ReadFile(const std::filesystem::path& path);
 		VkShaderModule CreateShaderModule(const std::vector<char>& data);
 
+		inline std::vector<VkDescriptorSet>& GetDescriptorSets() { return m_DescriptorSets; }
+		inline VkPipelineLayout& GetPipelineLayout() { return m_PipelineLayout; }
+
 	private: // Initialization functions
+		void CreateDescriptorSetLayout(); // TODO(Jorben): Remove this default descriptor set?
 		void CreateGraphicsPipeline();
+		void CreateDescriptorPool();
+		void CreateDescriptorSets();
 
 	private: // Helper functions
 
@@ -73,6 +82,12 @@ namespace VkApp
 	private: // Vulkan Data
 		VkPipeline m_GraphicsPipeline = VK_NULL_HANDLE;
 		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
+
+		// TODO(Jorben): Remove this
+		VkDescriptorSetLayout m_DescriptorLayout = VK_NULL_HANDLE;
+
+		VkDescriptorPool m_DescriptorPool;
+		std::vector<VkDescriptorSet> m_DescriptorSets;
 
 		friend class Renderer;
 		friend class InstanceManager;
