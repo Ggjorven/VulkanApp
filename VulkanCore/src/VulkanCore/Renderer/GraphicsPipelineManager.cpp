@@ -31,11 +31,7 @@ namespace VkApp
 		s_Instance = this;
 		s_InstanceManager = InstanceManager::Get();
 
-		// Note(Jorben): Creates a default pipeline for drawing triangles using the custom Vertex struct
-		CreateDescriptorSetLayout(); // TODO(Jorben): Remove?
-		CreateGraphicsPipeline();
-		CreateDescriptorPool(); // TODO(Jorben): Remove?
-		CreateDescriptorSets(); // TODO(Jorben): Remove?
+		// Note(Jorben): There is not default graphics pipeline created, this has to be done manually.
 	}
 
 	void GraphicsPipelineManager::Destroy()
@@ -88,35 +84,52 @@ namespace VkApp
 		return shaderModule;
 	}
 
+	void GraphicsPipelineManager::CreatePipeline(const PipelineInfo& info)
+	{
+		CreateDescriptorSetLayout(info);
+		CreateGraphicsPipeline(info);
+		CreateDescriptorPool(info);
+		CreateDescriptorSets(info);
+	}
+
 	// ===================================
 	// -------- Initialization -----------
 	// ===================================
-	void GraphicsPipelineManager::CreateDescriptorSetLayout() // TODO(Jorben): Remove this sometime
+	
+
+
+	// ===================================
+	// ------------ Helper ---------------
+	// ===================================
+	void GraphicsPipelineManager::CreateDescriptorSetLayout(const PipelineInfo& info)
 	{
-		VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-		uboLayoutBinding.binding = 0;
-		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uboLayoutBinding.descriptorCount = 1;
-		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+		std::vector<VkDescriptorSetLayoutBinding> layouts = { };
+
+		for (auto& descriptor : info.Descriptors)
+		{
+			VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+			uboLayoutBinding.binding = descriptor.Binding;
+			uboLayoutBinding.descriptorType = descriptor.DescriptorType;
+			uboLayoutBinding.descriptorCount = descriptor.DescriptorCount;
+			uboLayoutBinding.stageFlags = descriptor.StageFlags;
+			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+			layouts.push_back(uboLayoutBinding);
+		}
 
 		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutInfo.bindingCount = 1;
-		layoutInfo.pBindings = &uboLayoutBinding;
+		layoutInfo.bindingCount = static_cast<uint32_t>(info.Descriptors.size());
+		layoutInfo.pBindings = layouts.data();
 
 		if (vkCreateDescriptorSetLayout(s_InstanceManager->m_Device, &layoutInfo, nullptr, &m_DescriptorLayout) != VK_SUCCESS)
 			VKAPP_LOG_ERROR("Failed to create descriptor set layout!");
 	}
 
-	void GraphicsPipelineManager::CreateGraphicsPipeline()
+	void GraphicsPipelineManager::CreateGraphicsPipeline(const PipelineInfo& info)
 	{
-		// Note(Jorben): This is reading a default triangle shader
-		auto vertShaderCode = ReadFile("assets\\shaders\\vert.spv");
-		auto fragShaderCode = ReadFile("assets\\shaders\\frag.spv");
-
-		VkShaderModule vertShaderModule = CreateShaderModule(vertShaderCode);
-		VkShaderModule fragShaderModule = CreateShaderModule(fragShaderCode);
+		VkShaderModule vertShaderModule = CreateShaderModule(info.VertexShader);
+		VkShaderModule fragShaderModule = CreateShaderModule(info.FragmentShader);
 
 		// Vertex shader info
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
@@ -135,8 +148,8 @@ namespace VkApp
 		// PipelineShader info
 		VkPipelineShaderStageCreateInfo shaderStages[2] = { vertShaderStageInfo, fragShaderStageInfo };
 
-		auto bindingDescription = Vertex::GetBindingDescription();
-		auto attributeDescriptions = Vertex::GetAttributeDescriptions();
+		auto bindingDescription = info.VertexBindingDescription;
+		auto attributeDescriptions = info.VertexAttributeDescriptions;
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -197,7 +210,7 @@ namespace VkApp
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		//pipelineLayoutInfo.pushConstantRangeCount = 0;
+		pipelineLayoutInfo.pushConstantRangeCount = 0;
 		pipelineLayoutInfo.setLayoutCount = 1;					// TODO(Jorben): Remove?
 		pipelineLayoutInfo.pSetLayouts = &m_DescriptorLayout;	// TODO(Jorben): Remove?
 
@@ -231,7 +244,7 @@ namespace VkApp
 		vkDestroyShaderModule(s_InstanceManager->m_Device, vertShaderModule, nullptr);
 	}
 
-	void GraphicsPipelineManager::CreateDescriptorPool()
+	void GraphicsPipelineManager::CreateDescriptorPool(const PipelineInfo& info)
 	{
 		VkDescriptorPoolSize poolSize = {};
 		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -247,11 +260,11 @@ namespace VkApp
 			VKAPP_LOG_ERROR("Failed to create descriptor pool!");
 	}
 
-	void GraphicsPipelineManager::CreateDescriptorSets()
+	void GraphicsPipelineManager::CreateDescriptorSets(const PipelineInfo& info)
 	{
 		std::vector<VkDescriptorSetLayout> layouts(VKAPP_MAX_FRAMES_IN_FLIGHT, m_DescriptorLayout);
 
-		VkDescriptorSetAllocateInfo allocInfo{};
+		VkDescriptorSetAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = m_DescriptorPool;
 		allocInfo.descriptorSetCount = static_cast<uint32_t>(VKAPP_MAX_FRAMES_IN_FLIGHT);
@@ -262,9 +275,5 @@ namespace VkApp
 		if (vkAllocateDescriptorSets(s_InstanceManager->m_Device, &allocInfo, m_DescriptorSets.data()) != VK_SUCCESS)
 			VKAPP_LOG_ERROR("Failed to allocate descriptor sets!");
 	}
-
-	// ===================================
-	// ------------ Helper ---------------
-	// ===================================
 
 }

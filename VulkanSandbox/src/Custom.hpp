@@ -21,7 +21,7 @@ public:
 	void OnEvent(Event& e) override;
 
 private:
-	void UpdateUniformBuffers(uint32_t imageIndex);
+	void UpdateUniformBuffers(float deltaTime, uint32_t imageIndex);
 
 private:
 	VkBuffer m_VertexBuffer = VK_NULL_HANDLE;
@@ -29,8 +29,6 @@ private:
 
 	VkBuffer m_IndexBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory m_IndexBufferMemory = VK_NULL_HANDLE;
-
-	float m_SavedDeltaTime = 0.0f;
 
 	std::vector<VkBuffer> m_UniformBuffers = { };
 	std::vector<VkDeviceMemory> m_UniformBuffersMemory = { };

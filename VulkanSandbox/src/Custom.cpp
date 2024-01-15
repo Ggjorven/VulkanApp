@@ -14,6 +14,42 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+struct Vertex
+{
+public:
+	glm::vec2 Position = { };
+	glm::vec3 Colour = { };
+
+	static VkVertexInputBindingDescription GetBindingDescription()
+	{
+		VkVertexInputBindingDescription bindingDescription = {};
+		bindingDescription.binding = 0;
+		bindingDescription.stride = sizeof(Vertex);
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+		return bindingDescription;
+	}
+
+	static std::array<VkVertexInputAttributeDescription, 2> GetAttributeDescriptions()
+	{
+		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+
+		// Position
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(Vertex, Position);
+
+		// Colour
+		attributeDescriptions[1].binding = 0;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[1].offset = offsetof(Vertex, Colour);
+
+		return attributeDescriptions;
+	}
+};
+
 const std::vector<Vertex> vertices = {
 	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
 	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
@@ -25,7 +61,15 @@ const std::vector<uint16_t> indices = {
 	0, 1, 2, 2, 3, 0
 };
 
-struct UniformBufferObject {
+struct UniformBufferObject 
+{
+	glm::mat4 Model;
+	glm::mat4 View;
+	glm::mat4 Proj;
+};
+
+struct UniformBufferObject2
+{
 	glm::mat4 Model;
 	glm::mat4 View;
 	glm::mat4 Proj;
@@ -33,6 +77,18 @@ struct UniformBufferObject {
 
 void CustomLayer::OnAttach()
 {
+	PipelineInfo info = {};
+	info.VertexShader = GraphicsPipelineManager::ReadFile("assets\\shaders\\vert.spv");
+	info.FragmentShader = GraphicsPipelineManager::ReadFile("assets\\shaders\\frag.spv");
+	info.VertexBindingDescription = Vertex::GetBindingDescription();
+	info.VertexAttributeDescriptions = Vertex::GetAttributeDescriptions();
+
+	DescriptorInfo defaultDescriptor = {};
+	info.Descriptors.push_back(defaultDescriptor);
+
+	GraphicsPipelineManager::Get()->DestroyCurrentPipeline();
+	GraphicsPipelineManager::Get()->CreatePipeline(info);
+
 	BufferManager::CreateVertexBuffer(m_VertexBuffer, m_VertexBufferMemory, (void*)vertices.data(), sizeof(vertices[0]) * vertices.size());
 	BufferManager::CreateIndexBuffer(m_IndexBuffer, m_IndexBufferMemory, (void*)indices.data(), sizeof(indices[0]) * indices.size());
 
@@ -82,7 +138,7 @@ void CustomLayer::OnDetach()
 
 void CustomLayer::OnUpdate(float deltaTime)
 {
-	m_SavedDeltaTime = deltaTime;
+	UpdateUniformBuffers(deltaTime, Renderer::Get()->GetCurrentImage());
 }
 
 void CustomLayer::OnRender()
@@ -92,8 +148,6 @@ void CustomLayer::OnRender()
 			std::vector<VkDeviceSize> offsets = { {0} };
 			uint32_t currentFrame = Renderer::Get()->GetCurrentImage();
 
-			UpdateUniformBuffers(currentFrame);
-	
 			vkCmdBindVertexBuffers(buffer, 0, 1, &m_VertexBuffer, offsets.data());
 			vkCmdBindIndexBuffer(buffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
@@ -111,18 +165,18 @@ void CustomLayer::OnEvent(Event& e)
 {
 }
 
-void CustomLayer::UpdateUniformBuffers(uint32_t imageIndex)
+void CustomLayer::UpdateUniformBuffers(float deltaTime, uint32_t imageIndex)
 {
-	auto& extent = SwapChainManager::Get()->GetExtent();
+	auto& window = Application::Get().GetWindow();
+
+	static float sum = 0.0f;
+	sum += deltaTime;
 
 	UniformBufferObject ubo = {};
-	static float lastTime = 0.0f;
-	lastTime += m_SavedDeltaTime;
-
-	ubo.Model = glm::rotate(glm::mat4(1.0f), lastTime * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.Model = glm::rotate(glm::mat4(1.0f), sum * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo.Proj = glm::perspective(glm::radians(45.0f), (float)extent.width / (float)extent.height, 0.1f, 10.0f);
+	ubo.Proj = glm::perspective(glm::radians(45.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f, 10.0f);
 	ubo.Proj[1][1] *= -1;
 
-	memcpy(m_UniformBuffersMapped[imageIndex], &ubo, sizeof(ubo));
+	BufferManager::SetUniformData(m_UniformBuffersMapped[imageIndex], (void*)(&ubo), sizeof(ubo));
 }

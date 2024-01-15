@@ -154,4 +154,9 @@ namespace VkApp
 		}
 	}
 
+	void BufferManager::SetUniformData(void* mappedBuffer, void* data, uint32_t size)
+	{
+		memcpy(mappedBuffer, data, (size_t)size);
+	}
+
 }

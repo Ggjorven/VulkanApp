@@ -19,6 +19,7 @@ namespace VkApp
 		static void CreateIndexBuffer(VkBuffer& dstBuffer, VkDeviceMemory& dstMemory, void* indices, VkDeviceSize size = { 0u });
 
 		static void CreateUniformBuffer(std::vector<VkBuffer>& buffers, VkDeviceSize size, std::vector<VkDeviceMemory>& buffersMemory, std::vector<void*>& mappedBuffers);
+		static void SetUniformData(void* mappedBuffer, void* data, uint32_t size);
 
 	private:
 		
