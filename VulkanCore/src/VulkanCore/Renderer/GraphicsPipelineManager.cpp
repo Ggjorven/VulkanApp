@@ -246,15 +246,21 @@ namespace VkApp
 
 	void GraphicsPipelineManager::CreateDescriptorPool(const PipelineInfo& info)
 	{
-		VkDescriptorPoolSize poolSize = {};
-		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSize.descriptorCount = static_cast<uint32_t>(VKAPP_MAX_FRAMES_IN_FLIGHT);
+		VkDescriptorPoolSize poolSizeUniforms = {};
+		poolSizeUniforms.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizeUniforms.descriptorCount = info.Descriptors.size() * VKAPP_MAX_FRAMES_IN_FLIGHT; // Means we can have this many uniform buffers 
+
+		//VkDescriptorPoolSize poolSize = {};
+		//poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		//poolSize.descriptorCount = 2;
+
+		std::vector<VkDescriptorPoolSize> poolSizes = { poolSizeUniforms };
 
 		VkDescriptorPoolCreateInfo poolInfo = {};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolInfo.poolSizeCount = 1;
-		poolInfo.pPoolSizes = &poolSize;
-		poolInfo.maxSets = static_cast<uint32_t>(VKAPP_MAX_FRAMES_IN_FLIGHT);
+		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+		poolInfo.pPoolSizes = poolSizes.data();
+		poolInfo.maxSets = static_cast<uint32_t>(VKAPP_MAX_FRAMES_IN_FLIGHT); // Amount of sets?
 
 		if (vkCreateDescriptorPool(s_InstanceManager->m_Device, &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS)
 			VKAPP_LOG_ERROR("Failed to create descriptor pool!");

@@ -84,7 +84,12 @@ void CustomLayer::OnAttach()
 	info.VertexAttributeDescriptions = Vertex::GetAttributeDescriptions();
 
 	DescriptorInfo defaultDescriptor = {};
+	defaultDescriptor.Binding = 0;
 	info.Descriptors.push_back(defaultDescriptor);
+
+	DescriptorInfo newDescriptor = {};
+	newDescriptor.Binding = 1;
+	info.Descriptors.push_back(newDescriptor);
 
 	GraphicsPipelineManager::Get()->DestroyCurrentPipeline();
 	GraphicsPipelineManager::Get()->CreatePipeline(info);
@@ -93,6 +98,7 @@ void CustomLayer::OnAttach()
 	BufferManager::CreateIndexBuffer(m_IndexBuffer, m_IndexBufferMemory, (void*)indices.data(), sizeof(indices[0]) * indices.size());
 
 	BufferManager::CreateUniformBuffer(m_UniformBuffers, sizeof(UniformBufferObject), m_UniformBuffersMemory, m_UniformBuffersMapped);
+	BufferManager::CreateUniformBuffer(m_UniformBuffers2, sizeof(UniformBufferObject2), m_UniformBuffersMemory2, m_UniformBuffersMapped2);
 
 	// Initialize the descriptor sets/uniforms
 	for (size_t i = 0; i < VKAPP_MAX_FRAMES_IN_FLIGHT; i++) 
@@ -113,7 +119,25 @@ void CustomLayer::OnAttach()
 		descriptorWrite.pImageInfo = nullptr; // Optional
 		descriptorWrite.pTexelBufferView = nullptr; // Optional
 
+		// TODO(Jorben): Remove. // Note(Jorben): We're doing this again for second descriptor
+		VkDescriptorBufferInfo bufferInfo2 = {};
+		bufferInfo2.buffer = m_UniformBuffers2[i];
+		bufferInfo2.offset = 0;
+		bufferInfo2.range = sizeof(UniformBufferObject2);
+
+		VkWriteDescriptorSet descriptorWrite2 = {};
+		descriptorWrite2.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite2.dstSet = GraphicsPipelineManager::Get()->GetDescriptorSets()[i];
+		descriptorWrite2.dstBinding = 1;
+		descriptorWrite2.dstArrayElement = 0;
+		descriptorWrite2.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite2.descriptorCount = 1;
+		descriptorWrite2.pBufferInfo = &bufferInfo2;
+		descriptorWrite2.pImageInfo = nullptr; // Optional
+		descriptorWrite2.pTexelBufferView = nullptr; // Optional
+
 		vkUpdateDescriptorSets(InstanceManager::Get()->GetLogicalDevice(), 1, &descriptorWrite, 0, nullptr);
+		vkUpdateDescriptorSets(InstanceManager::Get()->GetLogicalDevice(), 1, &descriptorWrite2, 0, nullptr);
 	}
 }
 
@@ -133,6 +157,13 @@ void CustomLayer::OnDetach()
 	{
 		vkDestroyBuffer(logicalDevice, m_UniformBuffers[i], nullptr);
 		vkFreeMemory(logicalDevice, m_UniformBuffersMemory[i], nullptr);
+	}
+
+	// TODO(Jorben): Remove
+	for (size_t i = 0; i < VKAPP_MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		vkDestroyBuffer(logicalDevice, m_UniformBuffers2[i], nullptr);
+		vkFreeMemory(logicalDevice, m_UniformBuffersMemory2[i], nullptr);
 	}
 }
 
@@ -178,5 +209,12 @@ void CustomLayer::UpdateUniformBuffers(float deltaTime, uint32_t imageIndex)
 	ubo.Proj = glm::perspective(glm::radians(45.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f, 10.0f);
 	ubo.Proj[1][1] *= -1;
 
+	UniformBufferObject2 ubo2 = {};
+	ubo2.Model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo2.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo2.Proj = glm::perspective(glm::radians(45.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f, 10.0f);
+	ubo2.Proj[1][1] *= -1;
+
 	BufferManager::SetUniformData(m_UniformBuffersMapped[imageIndex], (void*)(&ubo), sizeof(ubo));
+	BufferManager::SetUniformData(m_UniformBuffersMapped2[imageIndex], (void*)(&ubo2), sizeof(ubo2));
 }
