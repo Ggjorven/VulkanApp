@@ -85,11 +85,11 @@ void CustomLayer::OnAttach()
 
 	DescriptorInfo defaultDescriptor = {};
 	defaultDescriptor.Binding = 0;
-	info.Descriptors.push_back(defaultDescriptor);
+	info.DescriptorSets.Set0.push_back(defaultDescriptor);
 
 	DescriptorInfo newDescriptor = {};
 	newDescriptor.Binding = 1;
-	info.Descriptors.push_back(newDescriptor);
+	info.DescriptorSets.Set0.push_back(newDescriptor);
 
 	GraphicsPipelineManager::Get()->DestroyCurrentPipeline();
 	GraphicsPipelineManager::Get()->CreatePipeline(info);
@@ -110,7 +110,7 @@ void CustomLayer::OnAttach()
 
 		VkWriteDescriptorSet descriptorWrite = {};
 		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = GraphicsPipelineManager::Get()->GetDescriptorSets()[i];
+		descriptorWrite.dstSet = GraphicsPipelineManager::Get()->GetDescriptorSets()[0][i];
 		descriptorWrite.dstBinding = 0;
 		descriptorWrite.dstArrayElement = 0;
 		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -127,7 +127,7 @@ void CustomLayer::OnAttach()
 
 		VkWriteDescriptorSet descriptorWrite2 = {};
 		descriptorWrite2.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite2.dstSet = GraphicsPipelineManager::Get()->GetDescriptorSets()[i];
+		descriptorWrite2.dstSet = GraphicsPipelineManager::Get()->GetDescriptorSets()[0][i];
 		descriptorWrite2.dstBinding = 1;
 		descriptorWrite2.dstArrayElement = 0;
 		descriptorWrite2.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -182,9 +182,9 @@ void CustomLayer::OnRender()
 			vkCmdBindVertexBuffers(buffer, 0, 1, &m_VertexBuffer, offsets.data());
 			vkCmdBindIndexBuffer(buffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-			vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipelineManager::Get()->GetPipelineLayout(), 0, 1, &GraphicsPipelineManager::Get()->GetDescriptorSets()[currentFrame], 0, nullptr);
+			vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipelineManager::Get()->GetPipelineLayout(), 0, 1, &GraphicsPipelineManager::Get()->GetDescriptorSets()[0][currentFrame], 0, nullptr);
 	
-			vkCmdDrawIndexed(buffer, indices.size(), 1, 0, 0, 0);
+			vkCmdDrawIndexed(buffer, (uint32_t)indices.size(), 1, 0, 0, 0);
 		});
 }
 

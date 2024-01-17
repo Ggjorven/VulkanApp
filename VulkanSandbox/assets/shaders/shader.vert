@@ -6,7 +6,7 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 proj;
 } ubo;
 
-layout(binding = 1) uniform UniformBufferObject2 {
+layout(set = 0, binding = 1) uniform UniformBufferObject2 {
     mat4 model;
     mat4 view;
     mat4 proj;

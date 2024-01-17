@@ -2,6 +2,8 @@
 
 #include <vector>
 #include <array>
+#include <set>
+#include <unordered_set>
 #include <filesystem>
 
 #include <vulkan/vulkan.h>
@@ -23,6 +25,22 @@ namespace VkApp
 		VkShaderStageFlagBits StageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 	};
 
+	struct DescriptorSets
+	{
+	public:
+		std::vector<DescriptorInfo> Set0 = { };
+		std::vector<DescriptorInfo> Set1 = { };
+		std::vector<DescriptorInfo> Set2 = { };
+		std::vector<DescriptorInfo> Set3 = { };
+
+		static std::unordered_set<VkDescriptorType> GetUniqueTypes(const std::vector<DescriptorInfo>& descriptors);
+		static uint32_t AmountOf(VkDescriptorType type, const std::vector<DescriptorInfo>& descriptors);
+
+		static VkDescriptorSetLayout GetDescriptorSetLayout(const std::vector<DescriptorInfo>& descriptors);
+		static VkDescriptorPool CreatePool(const std::vector<DescriptorInfo>& descriptors);
+		static std::vector<VkDescriptorSet> CreateDescriptorSets(VkDescriptorSetLayout& layout, VkDescriptorPool& pool, const std::vector<DescriptorInfo>& descriptors);
+	};
+
 	struct PipelineInfo
 	{
 	public:
@@ -33,7 +51,7 @@ namespace VkApp
 		std::array<VkVertexInputAttributeDescription, 2> VertexAttributeDescriptions = { };
 
 		// Note(Jorben): Only supports 1 descriptor so far. // TODO(Jorben)
-		std::vector<DescriptorInfo> Descriptors = { };
+		DescriptorSets DescriptorSets = {};
 	};
 
 	class GraphicsPipelineManager
@@ -50,7 +68,7 @@ namespace VkApp
 		
 		void CreatePipeline(const PipelineInfo& info);
 
-		inline std::vector<VkDescriptorSet>& GetDescriptorSets() { return m_DescriptorSets; }
+		inline std::vector<std::vector<VkDescriptorSet>>& GetDescriptorSets() { return m_DescriptorSets; }
 		inline VkPipelineLayout& GetPipelineLayout() { return m_PipelineLayout; }
 
 	private: // Initialization functions
@@ -68,10 +86,12 @@ namespace VkApp
 		VkPipeline m_GraphicsPipeline = VK_NULL_HANDLE;
 		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
 
-		VkDescriptorSetLayout m_DescriptorLayout = VK_NULL_HANDLE;
+		std::vector<VkDescriptorSetLayout> m_DescriptorLayouts = { };
 
-		VkDescriptorPool m_DescriptorPool = VK_NULL_HANDLE;
-		std::vector<VkDescriptorSet> m_DescriptorSets = { };
+		std::vector<VkDescriptorPool> m_DescriptorPools = { };
+
+		// Note(Jorben): The first index is the index of the descriptor and the second are VKAPP_MAX_FRAMES_INFLIGHT of sets.
+		std::vector<std::vector<VkDescriptorSet>> m_DescriptorSets = { };
 
 		friend class Renderer;
 		friend class InstanceManager;

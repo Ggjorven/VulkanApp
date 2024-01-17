@@ -22,6 +22,107 @@ namespace VkApp
 
 	static InstanceManager* s_InstanceManager = nullptr;
 
+	std::unordered_set<VkDescriptorType> DescriptorSets::GetUniqueTypes(const std::vector<DescriptorInfo>& descriptors)
+	{
+		std::unordered_set<VkDescriptorType> unique = {};
+
+		for (auto& descriptor : descriptors)
+		{
+			unique.insert(descriptor.DescriptorType);
+		}
+
+		return unique;
+	}
+
+	uint32_t DescriptorSets::AmountOf(VkDescriptorType type, const std::vector<DescriptorInfo>& descriptors)
+	{
+		uint32_t count = 0;
+
+		for (auto& descriptor : descriptors)
+		{
+			if (descriptor.DescriptorType == type)
+				count++;
+		}
+
+		//VKAPP_LOG_TRACE(count);
+		return count;
+	}
+
+	VkDescriptorSetLayout DescriptorSets::GetDescriptorSetLayout(const std::vector<DescriptorInfo>& descriptors)
+	{
+		std::vector<VkDescriptorSetLayoutBinding> layouts = { };
+
+		for (auto& descriptor : descriptors)
+		{
+			VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+			uboLayoutBinding.binding = descriptor.Binding;
+			uboLayoutBinding.descriptorType = descriptor.DescriptorType;
+			uboLayoutBinding.descriptorCount = descriptor.DescriptorCount;
+			uboLayoutBinding.stageFlags = descriptor.StageFlags;
+			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+			layouts.push_back(uboLayoutBinding);
+		}
+
+		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutInfo.bindingCount = static_cast<uint32_t>(descriptors.size());
+		layoutInfo.pBindings = layouts.data();
+
+		VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+		if (vkCreateDescriptorSetLayout(s_InstanceManager->GetLogicalDevice(), &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+			VKAPP_LOG_ERROR("Failed to create descriptor set layout!");
+
+		return descriptorSetLayout;
+	}
+
+	VkDescriptorPool DescriptorSets::CreatePool(const std::vector<DescriptorInfo>& descriptors)
+	{
+		std::vector<VkDescriptorPoolSize> poolSizes = { };
+		poolSizes.resize(DescriptorSets::GetUniqueTypes(descriptors).size());
+		poolSizes.clear(); // Note(Jorben): For some reason without this line there is a VK_SAMPLER or something in the list.
+
+		for (auto& type : DescriptorSets::GetUniqueTypes(descriptors))
+		{
+			VkDescriptorPoolSize poolSize = {};
+			poolSize.type = type;
+			poolSize.descriptorCount = DescriptorSets::AmountOf(type, descriptors) * VKAPP_MAX_FRAMES_IN_FLIGHT;
+
+			poolSizes.push_back(poolSize);
+		}
+
+		VkDescriptorPoolCreateInfo poolInfo = {};
+		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+		poolInfo.pPoolSizes = poolSizes.data();
+		poolInfo.maxSets = static_cast<uint32_t>(VKAPP_MAX_FRAMES_IN_FLIGHT); // Amount of sets?
+
+		VkDescriptorPool pool = VK_NULL_HANDLE;
+		if (vkCreateDescriptorPool(s_InstanceManager->GetLogicalDevice(), &poolInfo, nullptr, &pool) != VK_SUCCESS)
+			VKAPP_LOG_ERROR("Failed to create descriptor pool!");
+
+		return pool;
+	}
+
+	std::vector<VkDescriptorSet> DescriptorSets::CreateDescriptorSets(VkDescriptorSetLayout& layout, VkDescriptorPool& pool, const std::vector<DescriptorInfo>& descriptors)
+	{
+		std::vector<VkDescriptorSetLayout> layouts(VKAPP_MAX_FRAMES_IN_FLIGHT, layout);
+
+		VkDescriptorSetAllocateInfo allocInfo = {};
+		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocInfo.descriptorPool = pool;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(VKAPP_MAX_FRAMES_IN_FLIGHT);
+		allocInfo.pSetLayouts = layouts.data();
+
+		std::vector<VkDescriptorSet> descriptorSets = { };
+		descriptorSets.resize(VKAPP_MAX_FRAMES_IN_FLIGHT);
+
+		if (vkAllocateDescriptorSets(s_InstanceManager->GetLogicalDevice(), &allocInfo, descriptorSets.data()) != VK_SUCCESS)
+			VKAPP_LOG_ERROR("Failed to allocate descriptor sets!");
+
+		return descriptorSets;
+	}
+
 	// ===================================
 	// ------------ Public ---------------
 	// ===================================
@@ -49,8 +150,15 @@ namespace VkApp
 		vkDestroyPipeline(s_InstanceManager->m_Device, m_GraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(s_InstanceManager->m_Device, m_PipelineLayout, nullptr);
 
-		vkDestroyDescriptorPool(s_InstanceManager->m_Device, m_DescriptorPool, nullptr);
-		vkDestroyDescriptorSetLayout(s_InstanceManager->m_Device, m_DescriptorLayout, nullptr);
+		for (auto& pool : m_DescriptorPools)
+		{
+			vkDestroyDescriptorPool(s_InstanceManager->m_Device, pool, nullptr);
+		}
+
+		for (auto& layout : m_DescriptorLayouts)
+		{
+			vkDestroyDescriptorSetLayout(s_InstanceManager->m_Device, layout, nullptr);
+		}
 	}
 
 	std::vector<char> GraphicsPipelineManager::ReadFile(const std::filesystem::path& path)
@@ -103,27 +211,14 @@ namespace VkApp
 	// ===================================
 	void GraphicsPipelineManager::CreateDescriptorSetLayout(const PipelineInfo& info)
 	{
-		std::vector<VkDescriptorSetLayoutBinding> layouts = { };
-
-		for (auto& descriptor : info.Descriptors)
-		{
-			VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-			uboLayoutBinding.binding = descriptor.Binding;
-			uboLayoutBinding.descriptorType = descriptor.DescriptorType;
-			uboLayoutBinding.descriptorCount = descriptor.DescriptorCount;
-			uboLayoutBinding.stageFlags = descriptor.StageFlags;
-			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-			layouts.push_back(uboLayoutBinding);
-		}
-
-		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutInfo.bindingCount = static_cast<uint32_t>(info.Descriptors.size());
-		layoutInfo.pBindings = layouts.data();
-
-		if (vkCreateDescriptorSetLayout(s_InstanceManager->m_Device, &layoutInfo, nullptr, &m_DescriptorLayout) != VK_SUCCESS)
-			VKAPP_LOG_ERROR("Failed to create descriptor set layout!");
+		if (!info.DescriptorSets.Set0.empty())
+			m_DescriptorLayouts.push_back(DescriptorSets::GetDescriptorSetLayout(info.DescriptorSets.Set0));
+		if (!info.DescriptorSets.Set1.empty())
+			m_DescriptorLayouts.push_back(DescriptorSets::GetDescriptorSetLayout(info.DescriptorSets.Set1));
+		if (!info.DescriptorSets.Set2.empty())
+			m_DescriptorLayouts.push_back(DescriptorSets::GetDescriptorSetLayout(info.DescriptorSets.Set2));
+		if (!info.DescriptorSets.Set3.empty())
+			m_DescriptorLayouts.push_back(DescriptorSets::GetDescriptorSetLayout(info.DescriptorSets.Set3));
 	}
 
 	void GraphicsPipelineManager::CreateGraphicsPipeline(const PipelineInfo& info)
@@ -211,8 +306,8 @@ namespace VkApp
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.pushConstantRangeCount = 0;
-		pipelineLayoutInfo.setLayoutCount = 1;					// TODO(Jorben): Remove?
-		pipelineLayoutInfo.pSetLayouts = &m_DescriptorLayout;	// TODO(Jorben): Remove?
+		pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(m_DescriptorLayouts.size());					// TODO(Jorben): Remove?
+		pipelineLayoutInfo.pSetLayouts = m_DescriptorLayouts.data();	// TODO(Jorben): Remove?
 
 		if (vkCreatePipelineLayout(s_InstanceManager->m_Device, &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS)
 			VKAPP_LOG_ERROR("Failed to create pipeline layout!");
@@ -246,40 +341,26 @@ namespace VkApp
 
 	void GraphicsPipelineManager::CreateDescriptorPool(const PipelineInfo& info)
 	{
-		VkDescriptorPoolSize poolSizeUniforms = {};
-		poolSizeUniforms.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizeUniforms.descriptorCount = info.Descriptors.size() * VKAPP_MAX_FRAMES_IN_FLIGHT; // Means we can have this many uniform buffers 
-
-		//VkDescriptorPoolSize poolSize = {};
-		//poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		//poolSize.descriptorCount = 2;
-
-		std::vector<VkDescriptorPoolSize> poolSizes = { poolSizeUniforms };
-
-		VkDescriptorPoolCreateInfo poolInfo = {};
-		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-		poolInfo.pPoolSizes = poolSizes.data();
-		poolInfo.maxSets = static_cast<uint32_t>(VKAPP_MAX_FRAMES_IN_FLIGHT); // Amount of sets?
-
-		if (vkCreateDescriptorPool(s_InstanceManager->m_Device, &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS)
-			VKAPP_LOG_ERROR("Failed to create descriptor pool!");
+		if (!info.DescriptorSets.Set0.empty())
+			m_DescriptorPools.push_back(DescriptorSets::CreatePool(info.DescriptorSets.Set0));
+		if (!info.DescriptorSets.Set1.empty())
+			m_DescriptorPools.push_back(DescriptorSets::CreatePool(info.DescriptorSets.Set1));
+		if (!info.DescriptorSets.Set2.empty())
+			m_DescriptorPools.push_back(DescriptorSets::CreatePool(info.DescriptorSets.Set2));
+		if (!info.DescriptorSets.Set3.empty())
+			m_DescriptorPools.push_back(DescriptorSets::CreatePool(info.DescriptorSets.Set3));
 	}
 
 	void GraphicsPipelineManager::CreateDescriptorSets(const PipelineInfo& info)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(VKAPP_MAX_FRAMES_IN_FLIGHT, m_DescriptorLayout);
-
-		VkDescriptorSetAllocateInfo allocInfo = {};
-		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = m_DescriptorPool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(VKAPP_MAX_FRAMES_IN_FLIGHT);
-		allocInfo.pSetLayouts = layouts.data();
-
-		m_DescriptorSets.resize(VKAPP_MAX_FRAMES_IN_FLIGHT);
-
-		if (vkAllocateDescriptorSets(s_InstanceManager->m_Device, &allocInfo, m_DescriptorSets.data()) != VK_SUCCESS)
-			VKAPP_LOG_ERROR("Failed to allocate descriptor sets!");
+		if (!info.DescriptorSets.Set0.empty())
+			m_DescriptorSets.push_back(DescriptorSets::CreateDescriptorSets(m_DescriptorLayouts[0], m_DescriptorPools[0], info.DescriptorSets.Set0));
+		if (!info.DescriptorSets.Set1.empty())
+			m_DescriptorSets.push_back(DescriptorSets::CreateDescriptorSets(m_DescriptorLayouts[1], m_DescriptorPools[1], info.DescriptorSets.Set1));
+		if (!info.DescriptorSets.Set2.empty())
+			m_DescriptorSets.push_back(DescriptorSets::CreateDescriptorSets(m_DescriptorLayouts[2], m_DescriptorPools[2], info.DescriptorSets.Set2));
+		if (!info.DescriptorSets.Set3.empty())
+			m_DescriptorSets.push_back(DescriptorSets::CreateDescriptorSets(m_DescriptorLayouts[3], m_DescriptorPools[3], info.DescriptorSets.Set3));
 	}
 
 }

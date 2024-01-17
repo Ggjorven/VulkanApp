@@ -93,6 +93,7 @@ namespace VkApp
 		}
 
 		VKAPP_LOG_ERROR("Failed to find suitable memory type!");
+		return -1;
 	}
 
 	void BufferManager::CreateVertexBuffer(VkBuffer& dstBuffer, VkDeviceMemory& dstMemory, void* vertices, VkDeviceSize size)
