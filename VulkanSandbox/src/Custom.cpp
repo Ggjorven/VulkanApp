@@ -88,8 +88,8 @@ void CustomLayer::OnAttach()
 	info.DescriptorSets.Set0.push_back(defaultDescriptor);
 
 	DescriptorInfo newDescriptor = {};
-	newDescriptor.Binding = 1;
-	info.DescriptorSets.Set0.push_back(newDescriptor);
+	newDescriptor.Binding = 0;
+	info.DescriptorSets.Set1.push_back(newDescriptor);
 
 	GraphicsPipelineManager::Get()->DestroyCurrentPipeline();
 	GraphicsPipelineManager::Get()->CreatePipeline(info);
@@ -127,8 +127,8 @@ void CustomLayer::OnAttach()
 
 		VkWriteDescriptorSet descriptorWrite2 = {};
 		descriptorWrite2.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite2.dstSet = GraphicsPipelineManager::Get()->GetDescriptorSets()[0][i];
-		descriptorWrite2.dstBinding = 1;
+		descriptorWrite2.dstSet = GraphicsPipelineManager::Get()->GetDescriptorSets()[1][i];
+		descriptorWrite2.dstBinding = 0;
 		descriptorWrite2.dstArrayElement = 0;
 		descriptorWrite2.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		descriptorWrite2.descriptorCount = 1;
@@ -183,6 +183,7 @@ void CustomLayer::OnRender()
 			vkCmdBindIndexBuffer(buffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
 			vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipelineManager::Get()->GetPipelineLayout(), 0, 1, &GraphicsPipelineManager::Get()->GetDescriptorSets()[0][currentFrame], 0, nullptr);
+			vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipelineManager::Get()->GetPipelineLayout(), 1, 1, &GraphicsPipelineManager::Get()->GetDescriptorSets()[1][currentFrame], 0, nullptr); // Note(Jorben): Here we specify set = x in the 4th argument.
 	
 			vkCmdDrawIndexed(buffer, (uint32_t)indices.size(), 1, 0, 0, 0);
 		});

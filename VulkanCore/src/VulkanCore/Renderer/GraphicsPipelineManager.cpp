@@ -44,7 +44,6 @@ namespace VkApp
 				count++;
 		}
 
-		//VKAPP_LOG_TRACE(count);
 		return count;
 	}
 
