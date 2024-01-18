@@ -200,6 +200,7 @@ void CustomLayer::OnRender()
 
 void CustomLayer::OnImGuiRender()
 {
+	ImGui::ShowDemoWindow();
 }
 
 void CustomLayer::OnEvent(Event& e)

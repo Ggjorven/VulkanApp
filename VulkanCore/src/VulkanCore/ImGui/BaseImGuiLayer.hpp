@@ -5,6 +5,8 @@
 namespace VkApp
 {
 
+	class InstanceManager;
+
 	class BaseImGuiLayer : public Layer
 	{
 	public:
@@ -16,6 +18,9 @@ namespace VkApp
 
 		void Begin();
 		void End();
+
+	private:
+		friend class InstanceManager;
 	};
 
 }

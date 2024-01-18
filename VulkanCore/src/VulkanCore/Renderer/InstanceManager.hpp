@@ -12,6 +12,8 @@ namespace VkApp
 	class SwapChainManager;
 	class GraphicsPipelineManager;
 
+	class BaseImGuiLayer;
+
 	class InstanceManager
 	{
 	public: // Public functions
@@ -20,6 +22,7 @@ namespace VkApp
 		InstanceManager();
 		void Destroy();
 
+		inline VkInstance& GetInstance() { return m_Instance; }
 		inline VkPhysicalDevice& GetPhysicalDevice() { return m_PhysicalDevice; }
 		inline VkDevice& GetLogicalDevice() { return m_Device; }
 
@@ -78,5 +81,7 @@ namespace VkApp
 		friend class Renderer;
 		friend class SwapChainManager;
 		friend class GraphicsPipelineManager;
+
+		friend class BaseImGuiLayer;
 	};
 }
