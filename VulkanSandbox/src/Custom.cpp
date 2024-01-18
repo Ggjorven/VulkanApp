@@ -140,6 +140,11 @@ void CustomLayer::OnAttach()
 		vkUpdateDescriptorSets(InstanceManager::Get()->GetLogicalDevice(), 1, &descriptorWrite, 0, nullptr);
 		vkUpdateDescriptorSets(InstanceManager::Get()->GetLogicalDevice(), 1, &descriptorWrite2, 0, nullptr);
 	}
+
+	// -------
+	//  Textures
+	// -------
+	BufferManager::CreateTexture("assets/textures/texture.jpg", m_TextureImage, m_TextureImageMemory);
 }
 
 void CustomLayer::OnDetach()
@@ -166,6 +171,9 @@ void CustomLayer::OnDetach()
 		vkDestroyBuffer(logicalDevice, m_UniformBuffers2[i], nullptr);
 		vkFreeMemory(logicalDevice, m_UniformBuffersMemory2[i], nullptr);
 	}
+
+	vkDestroyImage(logicalDevice, m_TextureImage, nullptr);
+	vkFreeMemory(logicalDevice, m_TextureImageMemory, nullptr);
 }
 
 void CustomLayer::OnUpdate(float deltaTime)
