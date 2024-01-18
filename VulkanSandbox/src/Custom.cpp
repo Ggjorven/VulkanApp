@@ -200,7 +200,7 @@ void CustomLayer::OnRender()
 
 void CustomLayer::OnImGuiRender()
 {
-	ImGui::ShowDemoWindow();
+	ImGui::ShowMetricsWindow();
 }
 
 void CustomLayer::OnEvent(Event& e)

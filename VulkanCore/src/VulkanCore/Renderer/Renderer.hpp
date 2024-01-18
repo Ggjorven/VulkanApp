@@ -15,6 +15,7 @@ namespace VkApp
 
 	#define VKAPP_MAX_FRAMES_IN_FLIGHT 2
 	typedef std::function<void(VkCommandBuffer&, uint32_t)> RenderFunction;
+	typedef std::function<void(VkCommandBuffer&)> UIFunction;
 
 	class Renderer
 	{
@@ -25,6 +26,7 @@ namespace VkApp
 		static void Destroy();
 
 		static void AddToQueue(RenderFunction func);
+		static void AddToUIQueue(UIFunction func);
 		static void Display();
 
 		static void OnResize(uint32_t width, uint32_t height);
@@ -62,6 +64,7 @@ namespace VkApp
 
 		// Queue of functions
 		std::vector<RenderFunction> m_RenderQueue = { };
+		std::vector<UIFunction> m_UIQueue = { };
 
 		friend class InstanceManager;
 		friend class SwapChainManager;
