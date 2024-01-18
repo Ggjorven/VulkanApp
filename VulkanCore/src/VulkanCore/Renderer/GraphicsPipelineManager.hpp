@@ -87,9 +87,7 @@ namespace VkApp
 		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
 
 		std::vector<VkDescriptorSetLayout> m_DescriptorLayouts = { };
-
 		std::vector<VkDescriptorPool> m_DescriptorPools = { };
-
 		// Note(Jorben): The first index is the index of the descriptor and the second are VKAPP_MAX_FRAMES_INFLIGHT of sets.
 		std::vector<std::vector<VkDescriptorSet>> m_DescriptorSets = { };
 

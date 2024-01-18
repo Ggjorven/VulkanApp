@@ -3,6 +3,7 @@
 #include <imgui.h>
 
 #include <VulkanCore/Core/Application.hpp>
+#include <VulkanCore/Core/Input/Input.hpp>
 #include <VulkanCore/Core/Logging.hpp>
 #include <VulkanCore/Renderer/Renderer.hpp>
 #include <VulkanCore/Utils/BufferManager.hpp>
@@ -202,7 +203,14 @@ void CustomLayer::UpdateUniformBuffers(float deltaTime, uint32_t imageIndex)
 	auto& window = Application::Get().GetWindow();
 
 	static float sum = 0.0f;
-	sum += deltaTime;
+	if (Input::IsKeyPressed(Key::D))
+	{
+		sum += deltaTime * 1.5f;
+	}
+	if (Input::IsKeyPressed(Key::A))
+	{
+		sum -= deltaTime * 1.5f;
+	}
 
 	UniformBufferObject ubo = {};
 	ubo.Model = glm::rotate(glm::mat4(1.0f), sum * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -211,8 +219,8 @@ void CustomLayer::UpdateUniformBuffers(float deltaTime, uint32_t imageIndex)
 	ubo.Proj[1][1] *= -1;
 
 	UniformBufferObject2 ubo2 = {};
-	ubo2.Model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	ubo2.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo2.Model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo2.View = glm::lookAt(glm::vec3(sum, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	ubo2.Proj = glm::perspective(glm::radians(45.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f, 10.0f);
 	ubo2.Proj[1][1] *= -1;
 
