@@ -45,7 +45,10 @@ namespace VkApp
 	VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
 	{
 		if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+		{
 			VKAPP_LOG_WARN("Validation layer: {0}", pCallbackData->pMessage);
+			return VK_FALSE;
+		}
 
 		return VK_FALSE;
 	}

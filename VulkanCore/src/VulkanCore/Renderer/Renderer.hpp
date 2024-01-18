@@ -14,7 +14,7 @@ namespace VkApp
 {
 
 	#define VKAPP_MAX_FRAMES_IN_FLIGHT 2
-	typedef std::function<void(VkCommandBuffer&)> RenderFunction;
+	typedef std::function<void(VkCommandBuffer&, uint32_t)> RenderFunction;
 
 	class Renderer
 	{
@@ -31,6 +31,7 @@ namespace VkApp
 
 	public:
 		inline VkCommandPool& GetCommandPool() { return m_CommandPool; }
+		inline uint32_t GetCurrentImage() const { return m_CurrentFrame; }
 
 	private:
 		static Renderer* s_Instance;

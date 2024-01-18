@@ -38,6 +38,12 @@ project "VulkanSandbox"
 		"VulkanCore"
 	}
 
+	disablewarnings
+	{
+		"4005",
+		"4996"
+	}
+
 	filter "system:windows"
 		systemversion "latest"
 		staticruntime "on"
