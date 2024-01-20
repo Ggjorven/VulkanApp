@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include <array>
 #include <set>
 #include <unordered_set>
 #include <filesystem>
@@ -48,7 +47,7 @@ namespace VkApp
 		std::vector<char> FragmentShader = { };
 
 		VkVertexInputBindingDescription VertexBindingDescription = {};
-		std::array<VkVertexInputAttributeDescription, 2> VertexAttributeDescriptions = { };
+		std::vector<VkVertexInputAttributeDescription> VertexAttributeDescriptions = { };
 
 		// Note(Jorben): Only supports 1 descriptor so far. // TODO(Jorben)
 		DescriptorSets DescriptorSets = {};
@@ -68,8 +67,11 @@ namespace VkApp
 		
 		void CreatePipeline(const PipelineInfo& info);
 
+		inline std::vector<VkDescriptorPool>& GetDescriptorPools() { return m_DescriptorPools; }
 		inline std::vector<std::vector<VkDescriptorSet>>& GetDescriptorSets() { return m_DescriptorSets; }
 		inline VkPipelineLayout& GetPipelineLayout() { return m_PipelineLayout; }
+
+		inline VkDescriptorPool& GetImGuiPool() { return m_ImGuiDescriptorPool; }
 
 	private: // Initialization functions
 
@@ -78,6 +80,8 @@ namespace VkApp
 		void CreateGraphicsPipeline(const PipelineInfo& info);
 		void CreateDescriptorPool(const PipelineInfo& info);
 		void CreateDescriptorSets(const PipelineInfo& info);
+
+		void CreateImGuiDescriptorPool();
 
 	private: // Static things
 		static GraphicsPipelineManager* s_Instance;
@@ -90,6 +94,8 @@ namespace VkApp
 		std::vector<VkDescriptorPool> m_DescriptorPools = { };
 		// Note(Jorben): The first index is the index of the descriptor and the second are VKAPP_MAX_FRAMES_INFLIGHT of sets.
 		std::vector<std::vector<VkDescriptorSet>> m_DescriptorSets = { };
+
+		VkDescriptorPool m_ImGuiDescriptorPool = VK_NULL_HANDLE;
 
 		friend class Renderer;
 		friend class InstanceManager;

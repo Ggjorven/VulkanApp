@@ -131,12 +131,16 @@ namespace VkApp
 		s_Instance = this;
 		s_InstanceManager = InstanceManager::Get();
 
+		CreateImGuiDescriptorPool(); // For ImGui
+
 		// Note(Jorben): There is not default graphics pipeline created, this has to be done manually.
 	}
 
 	void GraphicsPipelineManager::Destroy()
 	{
 		DestroyCurrentPipeline();
+
+		vkDestroyDescriptorPool(s_InstanceManager->m_Device, m_ImGuiDescriptorPool, nullptr);
 
 		s_InstanceManager = nullptr;
 		s_Instance = nullptr;
@@ -279,7 +283,7 @@ namespace VkApp
 
 		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
 		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		colorBlendAttachment.blendEnable = VK_FALSE;
+		colorBlendAttachment.blendEnable = VK_FALSE; // Note(Jorben): Set true for transparancy
 
 		VkPipelineColorBlendStateCreateInfo colorBlending = {};
 		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -360,6 +364,33 @@ namespace VkApp
 			m_DescriptorSets.push_back(DescriptorSets::CreateDescriptorSets(m_DescriptorLayouts[2], m_DescriptorPools[2], info.DescriptorSets.Set2));
 		if (!info.DescriptorSets.Set3.empty())
 			m_DescriptorSets.push_back(DescriptorSets::CreateDescriptorSets(m_DescriptorLayouts[3], m_DescriptorPools[3], info.DescriptorSets.Set3));
+	}
+
+	void GraphicsPipelineManager::CreateImGuiDescriptorPool()
+	{
+		std::vector<VkDescriptorPoolSize> poolSizes =
+		{
+			{ VK_DESCRIPTOR_TYPE_SAMPLER, 10 },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 50 }, // Important for ImGui
+			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 10 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 10 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 10 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 10 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 10 },
+			{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 10 }
+		};
+
+		VkDescriptorPoolCreateInfo poolInfo = {};
+		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+		poolInfo.pPoolSizes = poolSizes.data();
+		poolInfo.maxSets = static_cast<uint32_t>(VKAPP_MAX_FRAMES_IN_FLIGHT); // Amount of sets?
+
+		if (vkCreateDescriptorPool(s_InstanceManager->GetLogicalDevice(), &poolInfo, nullptr, &m_ImGuiDescriptorPool) != VK_SUCCESS)
+			VKAPP_LOG_ERROR("Failed to create descriptor pool!");
 	}
 
 }

@@ -48,11 +48,17 @@ namespace VkApp
 		s_Instance->m_RenderQueue.push_back(func);
 	}
 
+	void Renderer::AddToUIQueue(UIFunction func)
+	{
+		s_Instance->m_UIQueue.push_back(func);
+	}
+
 	void Renderer::Display()
 	{
 		s_Instance->QueuePresent();
 
 		s_Instance->m_RenderQueue.clear();
+		s_Instance->m_UIQueue.clear();
 	}
 
 	void Renderer::OnResize(uint32_t width, uint32_t height)
@@ -195,6 +201,8 @@ namespace VkApp
 		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
 			VKAPP_LOG_ERROR("Failed to begin recording command buffer!");
 
+		VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+
 		VkRenderPassBeginInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassInfo.renderPass = m_SwapChainManager.m_RenderPass;
@@ -202,7 +210,6 @@ namespace VkApp
 		renderPassInfo.renderArea.offset = { 0, 0 };
 		renderPassInfo.renderArea.extent = m_SwapChainManager.m_SwapChainExtent;
 
-		VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
 		renderPassInfo.clearValueCount = 1;
 		renderPassInfo.pClearValues = &clearColor;
 
@@ -227,6 +234,9 @@ namespace VkApp
 		// Run the queue of commands
 		for (auto& func : m_RenderQueue)
 			func(commandBuffer, imageIndex);
+
+		for (auto& func : m_UIQueue)
+			func(commandBuffer);
 
 		vkCmdEndRenderPass(commandBuffer);
 

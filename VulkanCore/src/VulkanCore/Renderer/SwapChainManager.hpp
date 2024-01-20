@@ -20,8 +20,11 @@ namespace VkApp
 
 		void RecreateSwapChain();
 
-		VkRenderPass& GetRenderPass() { return m_RenderPass; }
-		VkExtent2D& GetExtent() { return m_SwapChainExtent;  }
+		inline VkRenderPass& GetRenderPass() { return m_RenderPass; }
+		inline VkExtent2D& GetExtent() { return m_SwapChainExtent;  }
+
+		inline std::vector<VkImage>& GetImages() { return m_SwapChainImages; }
+		inline std::vector<VkImageView>& GetImageViews() { return m_SwapChainImageViews; }
 
 	private: // Initialization functions
 		void CreateSwapChain();

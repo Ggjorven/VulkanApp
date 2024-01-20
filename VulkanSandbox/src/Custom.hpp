@@ -34,7 +34,9 @@ private:
 	std::vector<VkDeviceMemory> m_UniformBuffersMemory = { };
 	std::vector<void*> m_UniformBuffersMapped = { };
 
-	std::vector<VkBuffer> m_UniformBuffers2 = { };
-	std::vector<VkDeviceMemory> m_UniformBuffersMemory2 = { };
-	std::vector<void*> m_UniformBuffersMapped2 = { };
+	VkImage m_TextureImage = VK_NULL_HANDLE;
+	VkDeviceMemory m_TextureImageMemory = VK_NULL_HANDLE;
+
+	VkImageView m_TextureView = VK_NULL_HANDLE;
+	VkSampler m_Sampler = VK_NULL_HANDLE;
 };
