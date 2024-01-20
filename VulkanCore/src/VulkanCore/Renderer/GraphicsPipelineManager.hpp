@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include <array>
 #include <set>
 #include <unordered_set>
 #include <filesystem>
@@ -48,7 +47,7 @@ namespace VkApp
 		std::vector<char> FragmentShader = { };
 
 		VkVertexInputBindingDescription VertexBindingDescription = {};
-		std::array<VkVertexInputAttributeDescription, 2> VertexAttributeDescriptions = { };
+		std::vector<VkVertexInputAttributeDescription> VertexAttributeDescriptions = { };
 
 		// Note(Jorben): Only supports 1 descriptor so far. // TODO(Jorben)
 		DescriptorSets DescriptorSets = {};

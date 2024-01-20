@@ -20,6 +20,7 @@ struct Vertex
 public:
 	glm::vec2 Position = { };
 	glm::vec3 Colour = { };
+	glm::vec2 TexCoord = { };
 
 	static VkVertexInputBindingDescription GetBindingDescription()
 	{
@@ -31,9 +32,10 @@ public:
 		return bindingDescription;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 2> GetAttributeDescriptions()
+	static std::vector<VkVertexInputAttributeDescription> GetAttributeDescriptions()
 	{
-		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {};
+		attributeDescriptions.resize((size_t)3);
 
 		// Position
 		attributeDescriptions[0].binding = 0;
@@ -47,15 +49,21 @@ public:
 		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 		attributeDescriptions[1].offset = offsetof(Vertex, Colour);
 
+		// TexCoord
+		attributeDescriptions[2].binding = 0;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
+
 		return attributeDescriptions;
 	}
 };
 
 const std::vector<Vertex> vertices = {
-	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
 };
 
 const std::vector<uint16_t> indices = {
@@ -88,6 +96,13 @@ void CustomLayer::OnAttach()
 	defaultDescriptor.Binding = 0;
 	info.DescriptorSets.Set0.push_back(defaultDescriptor);
 
+	DescriptorInfo imageDescriptor = {};
+	imageDescriptor.Binding = 1;
+	//imageDescriptor.DescriptorCount = 1;
+	imageDescriptor.DescriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	imageDescriptor.StageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	info.DescriptorSets.Set0.push_back(imageDescriptor);
+
 	DescriptorInfo newDescriptor = {};
 	newDescriptor.Binding = 0;
 	info.DescriptorSets.Set1.push_back(newDescriptor);
@@ -100,6 +115,13 @@ void CustomLayer::OnAttach()
 
 	BufferManager::CreateUniformBuffer(m_UniformBuffers, sizeof(UniformBufferObject), m_UniformBuffersMemory, m_UniformBuffersMapped);
 	BufferManager::CreateUniformBuffer(m_UniformBuffers2, sizeof(UniformBufferObject2), m_UniformBuffersMemory2, m_UniformBuffersMapped2);
+
+	// -------
+	//  Textures
+	// -------
+	BufferManager::CreateTexture("assets/textures/texture.jpg", m_TextureImage, m_TextureImageMemory);
+	m_TextureView = BufferManager::CreateImageView(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB);
+	m_Sampler = BufferManager::CreateSampler();
 
 	// Initialize the descriptor sets/uniforms
 	for (size_t i = 0; i < VKAPP_MAX_FRAMES_IN_FLIGHT; i++) 
@@ -137,15 +159,25 @@ void CustomLayer::OnAttach()
 		descriptorWrite2.pImageInfo = nullptr; // Optional
 		descriptorWrite2.pTexelBufferView = nullptr; // Optional
 
-		vkUpdateDescriptorSets(InstanceManager::Get()->GetLogicalDevice(), 1, &descriptorWrite, 0, nullptr);
-		vkUpdateDescriptorSets(InstanceManager::Get()->GetLogicalDevice(), 1, &descriptorWrite2, 0, nullptr);
-	}
+		// TODO(Jorben): Make this better
+		VkDescriptorImageInfo imageInfo = {};
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = m_TextureView;
+		imageInfo.sampler = m_Sampler;
 
-	// -------
-	//  Textures
-	// -------
-	BufferManager::CreateTexture("assets/textures/texture.jpg", m_TextureImage, m_TextureImageMemory);
-	m_TextureView = BufferManager::CreateImageView(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB);
+		VkWriteDescriptorSet descriptorWrite3 = {};
+		descriptorWrite3.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite3.dstSet = GraphicsPipelineManager::Get()->GetDescriptorSets()[0][i];
+		descriptorWrite3.dstBinding = 1;
+		descriptorWrite3.dstArrayElement = 0;
+		descriptorWrite3.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrite3.descriptorCount = 1;
+		descriptorWrite3.pImageInfo = &imageInfo;
+
+		std::vector<VkWriteDescriptorSet> descriptorWrites = { descriptorWrite, descriptorWrite2, descriptorWrite3 };
+
+		vkUpdateDescriptorSets(InstanceManager::Get()->GetLogicalDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+	}
 }
 
 void CustomLayer::OnDetach()
