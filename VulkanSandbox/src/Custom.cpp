@@ -145,6 +145,7 @@ void CustomLayer::OnAttach()
 	//  Textures
 	// -------
 	BufferManager::CreateTexture("assets/textures/texture.jpg", m_TextureImage, m_TextureImageMemory);
+	m_TextureView = BufferManager::CreateImageView(m_TextureImage, VK_FORMAT_R8G8B8A8_SRGB);
 }
 
 void CustomLayer::OnDetach()
@@ -171,6 +172,9 @@ void CustomLayer::OnDetach()
 		vkDestroyBuffer(logicalDevice, m_UniformBuffers2[i], nullptr);
 		vkFreeMemory(logicalDevice, m_UniformBuffersMemory2[i], nullptr);
 	}
+
+	vkDestroySampler(logicalDevice, m_Sampler, nullptr);
+	vkDestroyImageView(logicalDevice, m_TextureView, nullptr);
 
 	vkDestroyImage(logicalDevice, m_TextureImage, nullptr);
 	vkFreeMemory(logicalDevice, m_TextureImageMemory, nullptr);

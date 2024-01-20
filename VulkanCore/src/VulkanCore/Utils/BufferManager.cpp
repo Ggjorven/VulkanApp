@@ -168,6 +168,59 @@ namespace VkApp
 		vkFreeMemory(logicalDevice, stagingMemory, nullptr);
 	}
 
+	VkImageView BufferManager::CreateImageView(VkImage& image, VkFormat format)
+	{
+		VkImageViewCreateInfo viewInfo = {};
+		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewInfo.image = image;
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.format = format;
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+
+		VkImageView imageView;
+		if (vkCreateImageView(InstanceManager::Get()->GetLogicalDevice(), &viewInfo, nullptr, &imageView) != VK_SUCCESS)
+			VKAPP_LOG_ERROR("Failed to create texture image view!");
+
+		return imageView;
+	}
+
+	VkSampler BufferManager::CreateSampler()
+	{
+		VkSamplerCreateInfo samplerInfo = {};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+		VkPhysicalDeviceProperties properties = {};
+		vkGetPhysicalDeviceProperties(InstanceManager::Get()->GetPhysicalDevice(), &properties);
+		
+		samplerInfo.anisotropyEnable = VK_TRUE;								// Can be disabled: just set VK_FALSE
+		samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy; // And 1.0f
+
+		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo.mipLodBias = 0.0f;
+		samplerInfo.minLod = 0.0f;
+		samplerInfo.maxLod = 0.0f;
+
+		VkSampler sampler;
+		if (vkCreateSampler(InstanceManager::Get()->GetLogicalDevice(), &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
+			VKAPP_LOG_ERROR("Failed to create texture sampler!");
+
+		return sampler;
+	}
+
 	void BufferManager::CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
 	{
 		VkImageCreateInfo imageInfo = {};

@@ -25,6 +25,9 @@ namespace VkApp
 		// TODO(Jorben): Improve
 		static void CreateTexture(const std::filesystem::path& path, VkImage& dstImage, VkDeviceMemory& dstImageMemory);
 
+		static VkImageView CreateImageView(VkImage& image, VkFormat format);
+		static VkSampler CreateSampler(); // TODO(Jorben): Make it usable with multiple formats and stuff.
+
 	private:
 		static void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 		static void TransitionImageToLayout(VkImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
