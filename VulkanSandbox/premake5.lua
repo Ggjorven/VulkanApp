@@ -30,12 +30,19 @@ project "VulkanSandbox"
 		"%{IncludeDir.spdlog}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
-		"%{IncludeDir.VulkanSDK}"
+		"%{IncludeDir.VulkanSDK}",
+		"%{IncludeDir.VMA}"
 	}
 
 	links
 	{
 		"VulkanCore"
+	}
+
+	disablewarnings
+	{
+		"4005",
+		"4996"
 	}
 
 	filter "system:windows"

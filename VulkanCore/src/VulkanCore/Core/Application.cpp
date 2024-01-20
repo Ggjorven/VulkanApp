@@ -64,12 +64,15 @@ namespace VkApp
 				layer->OnRender();
 			}
 
-			Renderer::Display();
+			if (m_ImGuiLayer)
+			{
+				m_ImGuiLayer->Begin();
+				for (Layer* layer : m_LayerStack)
+					layer->OnImGuiRender();
+				m_ImGuiLayer->End();
+			}
 
-			m_ImGuiLayer->Begin();
-			for (Layer* layer : m_LayerStack)
-				layer->OnImGuiRender();
-			m_ImGuiLayer->End();
+			Renderer::Display();
 
 			m_Window->OnRender();
 		}

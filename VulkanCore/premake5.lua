@@ -38,7 +38,8 @@ project "VulkanCore"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.spdlog}",
 		"%{IncludeDir.stb_image}",
-		"%{IncludeDir.VulkanSDK}"
+		"%{IncludeDir.VulkanSDK}",
+		"%{IncludeDir.VMA}"
 	}
 
 	links
@@ -47,7 +48,14 @@ project "VulkanCore"
 
 		"GLFW",
 		"ImGui",
-		"spdlog"
+		"spdlog",
+		"VMA"
+	}
+
+	disablewarnings
+	{
+		"4005",
+		"4996"
 	}
 
 	filter "system:windows"

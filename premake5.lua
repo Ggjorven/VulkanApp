@@ -22,6 +22,7 @@ group "Additional Dependencies"
 	include "vendor/GLFW"
 	include "vendor/ImGui"
 	include "vendor/spdlog"
+	include "vendor/VulkanMemoryAllocator"
 group ""
 
 group "Core"
