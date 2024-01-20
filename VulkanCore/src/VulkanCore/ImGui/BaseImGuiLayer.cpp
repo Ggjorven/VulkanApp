@@ -106,7 +106,7 @@ namespace VkApp
 		// Rendering
 		ImGui::Render();
 
-		Renderer::AddToQueue([this](VkCommandBuffer& buffer, uint32_t imageIndex) {
+		Renderer::AddToUIQueue([this](VkCommandBuffer& buffer) {
 				ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), buffer);
 			});
 

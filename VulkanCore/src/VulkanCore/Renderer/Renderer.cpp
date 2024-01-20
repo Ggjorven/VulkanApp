@@ -58,6 +58,7 @@ namespace VkApp
 		s_Instance->QueuePresent();
 
 		s_Instance->m_RenderQueue.clear();
+		s_Instance->m_UIQueue.clear();
 	}
 
 	void Renderer::OnResize(uint32_t width, uint32_t height)

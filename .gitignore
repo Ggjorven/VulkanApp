@@ -388,6 +388,10 @@ vendor/ImGui/ImGui.vcxproj
 vendor/ImGui/ImGui.vcxproj.filters
 vendor/ImGui/ImGui.vcxproj.user
 
+vendor/VulkanMemoryAllocator/VMA.vcxproj
+vendor/VulkanMemoryAllocator/VMA.vcxproj.filters
+vendor/VulkanMemoryAllocator/VMA.vcxproj.user
+
 # Binaries
 bin/
 bin/**
