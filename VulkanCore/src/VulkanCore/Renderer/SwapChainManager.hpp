@@ -18,6 +18,7 @@ namespace VkApp
 		SwapChainManager();
 		void Destroy();
 
+		void InitCommandPoolRequiredFunctions();
 		void RecreateSwapChain();
 
 		inline VkRenderPass& GetRenderPass() { return m_RenderPass; }
@@ -30,12 +31,17 @@ namespace VkApp
 		void CreateSwapChain();
 		void CreateImageViews();
 		void CreateRenderPass();
+
+		void CreateDepthResources();
 		void CreateFramebuffers();
 
 	private: // Helper functions
 		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 		VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
+		VkFormat FindDepthFormat();
+		VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
 		void CleanUpSwapChain();
 
@@ -50,6 +56,10 @@ namespace VkApp
 		std::vector<VkImage> m_SwapChainImages = { };
 		std::vector<VkImageView> m_SwapChainImageViews = { };
 		std::vector<VkFramebuffer> m_SwapChainFramebuffers = { };
+
+		VkImage m_DepthImage = VK_NULL_HANDLE;
+		VkDeviceMemory m_DepthImageMemory = VK_NULL_HANDLE;
+		VkImageView m_DepthImageView = VK_NULL_HANDLE;
 
 		VkRenderPass m_RenderPass = VK_NULL_HANDLE;
 

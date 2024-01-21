@@ -23,13 +23,15 @@ namespace VkApp
 		static void SetUniformData(void* mappedBuffer, void* data, uint32_t size);
 
 		static void CreateTexture(const std::filesystem::path& path, VkImage& dstImage, VkDeviceMemory& dstImageMemory);
-		static VkImageView CreateImageView(VkImage& image, VkFormat format);
+		static VkImageView CreateImageView(VkImage& image, VkFormat format, VkImageAspectFlags aspectFlags);
 		static VkSampler CreateSampler(); // TODO(Jorben): Make it usable with multiple formats and stuff.
 
-	private:
+	public:
 		static void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 		static void TransitionImageToLayout(VkImage& image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 		static void CopyBufferToImage(VkBuffer& buffer, VkImage& image, uint32_t width, uint32_t height);
+
+		static inline bool HasStencilComponent(VkFormat format) { return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT; }
 
 	public:
 		static VkCommandBuffer BeginSingleTimeCommands();
