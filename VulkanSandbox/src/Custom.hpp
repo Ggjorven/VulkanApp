@@ -3,8 +3,11 @@
 #include <vector>
 
 #include <VulkanCore/Core/Layer.hpp>
+#include <VulkanCore/Renderer/GraphicsPipelineManager.hpp>
 
 #include <vulkan/vulkan.h>
+
+#include "Camera.hpp"
 
 using namespace VkApp;
 
@@ -24,6 +27,8 @@ private:
 	void UpdateUniformBuffers(float deltaTime, uint32_t imageIndex);
 
 private:
+	GraphicsPipeline m_Pipeline;
+
 	VkBuffer m_VertexBuffer = VK_NULL_HANDLE;
 	VkDeviceMemory m_VertexBufferMemory = VK_NULL_HANDLE;
 
@@ -39,4 +44,6 @@ private:
 
 	VkImageView m_TextureView = VK_NULL_HANDLE;
 	VkSampler m_Sampler = VK_NULL_HANDLE;
+
+	//Camera m_Camera;
 };

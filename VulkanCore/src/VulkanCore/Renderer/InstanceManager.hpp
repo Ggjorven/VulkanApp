@@ -10,6 +10,7 @@ namespace VkApp
 
 	class Renderer;
 	class SwapChainManager;
+	class GraphicsPipeline;
 	class GraphicsPipelineManager;
 
 	class BaseImGuiLayer;
@@ -80,6 +81,7 @@ namespace VkApp
 
 		friend class Renderer;
 		friend class SwapChainManager;
+		friend class GraphicsPipeline;
 		friend class GraphicsPipelineManager;
 
 		friend class BaseImGuiLayer;

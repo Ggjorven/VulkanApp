@@ -22,9 +22,7 @@ namespace VkApp
 		static void CreateUniformBuffer(std::vector<VkBuffer>& buffers, VkDeviceSize size, std::vector<VkDeviceMemory>& buffersMemory, std::vector<void*>& mappedBuffers);
 		static void SetUniformData(void* mappedBuffer, void* data, uint32_t size);
 
-		// TODO(Jorben): Improve
 		static void CreateTexture(const std::filesystem::path& path, VkImage& dstImage, VkDeviceMemory& dstImageMemory);
-
 		static VkImageView CreateImageView(VkImage& image, VkFormat format);
 		static VkSampler CreateSampler(); // TODO(Jorben): Make it usable with multiple formats and stuff.
 

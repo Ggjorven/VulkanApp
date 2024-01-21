@@ -102,8 +102,7 @@ void CustomLayer::OnAttach()
 	imageDescriptor.StageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	info.DescriptorSets.Set0.push_back(imageDescriptor);
 
-	GraphicsPipelineManager::Get()->DestroyCurrentPipeline();
-	GraphicsPipelineManager::Get()->CreatePipeline(info);
+	m_Pipeline = GraphicsPipelineManager::Get()->CreatePipeline("My Pipeline", info);
 
 	BufferManager::CreateVertexBuffer(m_VertexBuffer, m_VertexBufferMemory, (void*)vertices.data(), sizeof(vertices[0]) * vertices.size());
 	BufferManager::CreateIndexBuffer(m_IndexBuffer, m_IndexBufferMemory, (void*)indices.data(), sizeof(indices[0]) * indices.size());
@@ -125,7 +124,7 @@ void CustomLayer::OnAttach()
 
 		VkWriteDescriptorSet descriptorWrite = {};
 		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = GraphicsPipelineManager::Get()->GetDescriptorSets()[0][i];
+		descriptorWrite.dstSet = m_Pipeline.GetDescriptorSets()[0][i];
 		descriptorWrite.dstBinding = 0;
 		descriptorWrite.dstArrayElement = 0;
 		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -140,7 +139,7 @@ void CustomLayer::OnAttach()
 
 		VkWriteDescriptorSet descriptorWrite2 = {};
 		descriptorWrite2.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite2.dstSet = GraphicsPipelineManager::Get()->GetDescriptorSets()[0][i];
+		descriptorWrite2.dstSet = m_Pipeline.GetDescriptorSets()[0][i];
 		descriptorWrite2.dstBinding = 1;
 		descriptorWrite2.dstArrayElement = 0;
 		descriptorWrite2.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -190,10 +189,12 @@ void CustomLayer::OnRender()
 			std::vector<VkDeviceSize> offsets = { {0} };
 			uint32_t currentFrame = Renderer::Get()->GetCurrentImage();
 
+			m_Pipeline.Bind(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS);
+
 			vkCmdBindVertexBuffers(buffer, 0, 1, &m_VertexBuffer, offsets.data());
 			vkCmdBindIndexBuffer(buffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-			vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, GraphicsPipelineManager::Get()->GetPipelineLayout(), 0, 1, &GraphicsPipelineManager::Get()->GetDescriptorSets()[0][currentFrame], 0, nullptr);
+			vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 0, 1, &m_Pipeline.GetDescriptorSets()[0][currentFrame], 0, nullptr);
 	
 			vkCmdDrawIndexed(buffer, (uint32_t)indices.size(), 1, 0, 0, 0);
 		});
@@ -214,14 +215,10 @@ void CustomLayer::UpdateUniformBuffers(float deltaTime, uint32_t imageIndex)
 
 	if (!Application::Get().IsMinimized()) // Note(Jorben): Added this line because, glm::perspective doesn't work if the aspect ratio is 0
 	{
-		static float sum = 0.0f;
-		if (Input::IsKeyPressed(Key::D))
-			sum += deltaTime * 1.5f;
-		if (Input::IsKeyPressed(Key::A))
-			sum -= deltaTime * 1.5f;
+		//m_Camera.OnUpdate(deltaTime);
 
 		UniformBufferObject ubo = {};
-		ubo.Model = glm::rotate(glm::mat4(1.0f), sum * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.Model = glm::mat4(1.0f);
 		ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.Proj = glm::perspective(glm::radians(45.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f, 10.0f);
 		ubo.Proj[1][1] *= -1;

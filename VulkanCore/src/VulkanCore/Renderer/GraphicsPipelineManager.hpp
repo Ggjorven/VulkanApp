@@ -49,8 +49,41 @@ namespace VkApp
 		VkVertexInputBindingDescription VertexBindingDescription = {};
 		std::vector<VkVertexInputAttributeDescription> VertexAttributeDescriptions = { };
 
-		// Note(Jorben): Only supports 1 descriptor so far. // TODO(Jorben)
 		DescriptorSets DescriptorSets = {};
+	};
+
+	class GraphicsPipelineManager;
+
+	class GraphicsPipeline
+	{
+	public:
+		GraphicsPipeline() = default;
+		GraphicsPipeline(const PipelineInfo& info);
+		void Destroy();
+
+		void Bind(VkCommandBuffer& buffer, VkPipelineBindPoint bindPoint);
+
+		inline VkPipelineLayout& GetPipelineLayout() { return m_PipelineLayout; }
+		inline std::vector<VkDescriptorPool>& GetDescriptorPools() { return m_DescriptorPools; }
+		inline std::vector<std::vector<VkDescriptorSet>>& GetDescriptorSets() { return m_DescriptorSets; }
+
+	private: // Helper functions
+		void CreateDescriptorSetLayout(const PipelineInfo& info);
+		void CreateGraphicsPipeline(const PipelineInfo& info);
+		void CreateDescriptorPool(const PipelineInfo& info);
+		void CreateDescriptorSets(const PipelineInfo& info);
+
+	private:
+		VkPipeline m_GraphicsPipeline = VK_NULL_HANDLE;
+		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
+
+		std::vector<VkDescriptorSetLayout> m_DescriptorLayouts = { };
+		std::vector<VkDescriptorPool> m_DescriptorPools = { };
+
+		// Note(Jorben): The first index is the index of the descriptor and the second are VKAPP_MAX_FRAMES_INFLIGHT of sets.
+		std::vector<std::vector<VkDescriptorSet>> m_DescriptorSets = { };
+
+		friend class GraphicsPipelineManager;
 	};
 
 	class GraphicsPipelineManager
@@ -60,42 +93,29 @@ namespace VkApp
 
 		GraphicsPipelineManager();
 		void Destroy();
-		void DestroyCurrentPipeline();
 
-		static std::vector<char> ReadFile(const std::filesystem::path& path);
-		static VkShaderModule CreateShaderModule(const std::vector<char>& data);
-		
-		void CreatePipeline(const PipelineInfo& info);
+		GraphicsPipeline& GetPipeline(const std::string& id);
 
-		inline std::vector<VkDescriptorPool>& GetDescriptorPools() { return m_DescriptorPools; }
-		inline std::vector<std::vector<VkDescriptorSet>>& GetDescriptorSets() { return m_DescriptorSets; }
-		inline VkPipelineLayout& GetPipelineLayout() { return m_PipelineLayout; }
+		void DestroyPipeline(const std::string& id);
+		void DestroyAllPipelines();
+
+		GraphicsPipeline& CreatePipeline(const std::string& id, const PipelineInfo& info);
 
 		inline VkDescriptorPool& GetImGuiPool() { return m_ImGuiDescriptorPool; }
+		
+		static std::vector<char> ReadFile(const std::filesystem::path& path);
+		static VkShaderModule CreateShaderModule(const std::vector<char>& data);
 
 	private: // Initialization functions
-
-	private: // Helper functions
-		void CreateDescriptorSetLayout(const PipelineInfo& info);
-		void CreateGraphicsPipeline(const PipelineInfo& info);
-		void CreateDescriptorPool(const PipelineInfo& info);
-		void CreateDescriptorSets(const PipelineInfo& info);
-
 		void CreateImGuiDescriptorPool();
 
 	private: // Static things
 		static GraphicsPipelineManager* s_Instance;
 
 	private: // Vulkan Data
-		VkPipeline m_GraphicsPipeline = VK_NULL_HANDLE;
-		VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
-
-		std::vector<VkDescriptorSetLayout> m_DescriptorLayouts = { };
-		std::vector<VkDescriptorPool> m_DescriptorPools = { };
-		// Note(Jorben): The first index is the index of the descriptor and the second are VKAPP_MAX_FRAMES_INFLIGHT of sets.
-		std::vector<std::vector<VkDescriptorSet>> m_DescriptorSets = { };
-
 		VkDescriptorPool m_ImGuiDescriptorPool = VK_NULL_HANDLE;
+
+		std::unordered_map<std::string, GraphicsPipeline> m_GraphicsPipelines = {};
 
 		friend class Renderer;
 		friend class InstanceManager;
