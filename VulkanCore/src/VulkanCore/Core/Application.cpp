@@ -57,6 +57,7 @@ namespace VkApp
 
 			//Update & Render
 			m_Window->OnUpdate();
+			//ProcessEvents();
 
 			for (Layer* layer : m_LayerStack)
 			{

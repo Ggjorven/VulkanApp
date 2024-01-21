@@ -69,3 +69,7 @@ project "VulkanSandbox"
 		defines "VKAPP_DIST"
 		runtime "Release"
 		optimize "on"
+
+	-- Dist filter for Windows for Windowed Applications
+	filter { "system:windows", "configurations:Dist" }
+		kind "WindowedApp"
