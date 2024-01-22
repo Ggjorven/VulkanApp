@@ -64,7 +64,7 @@ namespace VkApp
 		VkBuffer& GetVertexBuffer() { return m_VertexBuffer; }
 		VkBuffer& GetIndexBuffer() { return m_IndexBuffer; }
 
-		uint32_t GetAmountOfIndices() const { return m_Indices.size(); }
+		uint32_t GetAmountOfIndices() const { return (uint32_t)m_Indices.size(); }
 
 	private:
 		void LoadModel(const std::filesystem::path& path, std::vector<MeshVertex>& vertices, std::vector<uint32_t>& indices);

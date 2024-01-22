@@ -216,7 +216,7 @@ void CustomLayer::UpdateUniformBuffers(float deltaTime, uint32_t imageIndex)
 
 		UniformBufferObject ubo = {};
 		ubo.Model = glm::mat4(1.0f);
-		ubo.View = //glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.Proj = glm::perspective(glm::radians(45.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f, 10.0f);
 		ubo.Proj[1][1] *= -1;
 
