@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <VulkanCore/Core/Layer.hpp>
+#include <VulkanCore/Renderer/Mesh.hpp>
 #include <VulkanCore/Renderer/GraphicsPipelineManager.hpp>
 
 #include <vulkan/vulkan.h>
@@ -29,11 +30,7 @@ private:
 private:
 	GraphicsPipeline m_Pipeline;
 
-	VkBuffer m_VertexBuffer = VK_NULL_HANDLE;
-	VkDeviceMemory m_VertexBufferMemory = VK_NULL_HANDLE;
-
-	VkBuffer m_IndexBuffer = VK_NULL_HANDLE;
-	VkDeviceMemory m_IndexBufferMemory = VK_NULL_HANDLE;
+	Mesh m_Mesh;
 
 	std::vector<VkBuffer> m_UniformBuffers = { };
 	std::vector<VkDeviceMemory> m_UniformBuffersMemory = { };

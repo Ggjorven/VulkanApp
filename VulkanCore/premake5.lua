@@ -26,6 +26,7 @@ project "VulkanCore"
 		"_CRT_SECURE_NO_WARNINGS",
 		"GLFW_INCLUDE_NONE",
 		"GLEW_STATIC"
+		-- "ASSIMP_BUILD_STATIC_LIB"
 	}
 
 	includedirs
@@ -38,6 +39,7 @@ project "VulkanCore"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.spdlog}",
 		"%{IncludeDir.stb_image}",
+		"%{IncludeDir.assimp}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.VMA}"
 	}
@@ -81,3 +83,21 @@ project "VulkanCore"
 		defines "VKAPP_DIST"
 		runtime "Release"
 		optimize "on"
+
+	filter { "system:windows", "configurations:Debug" }
+		links
+		{
+			"%{wks.location}/vendor/assimp/bin/windows/Debug/assimp-vc143-mtd.lib"
+		}
+
+	filter { "system:windows", "configurations:Release" }
+		links
+		{
+			"%{wks.location}/vendor/assimp/bin/windows/Release/assimp-vc143-mt.lib"
+		}
+
+	filter { "system:windows", "configurations:Dist" }
+		links
+		{
+			"%{wks.location}/vendor/assimp/bin/windows/Release/assimp-vc143-mt.lib"
+		}

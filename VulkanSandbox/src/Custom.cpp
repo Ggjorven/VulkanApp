@@ -15,6 +15,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <assimp/BaseImporter.h>
+
 struct Vertex
 {
 public:
@@ -88,8 +90,8 @@ void CustomLayer::OnAttach()
 	PipelineInfo info = {};
 	info.VertexShader = GraphicsPipelineManager::ReadFile("assets\\shaders\\vert.spv");
 	info.FragmentShader = GraphicsPipelineManager::ReadFile("assets\\shaders\\frag.spv");
-	info.VertexBindingDescription = Vertex::GetBindingDescription();
-	info.VertexAttributeDescriptions = Vertex::GetAttributeDescriptions();
+	info.VertexBindingDescription = MeshVertex::GetBindingDescription();
+	info.VertexAttributeDescriptions = MeshVertex::GetAttributeDescriptions();
 
 	DescriptorInfo defaultDescriptor = {};
 	defaultDescriptor.Binding = 0;
@@ -104,12 +106,11 @@ void CustomLayer::OnAttach()
 
 	m_Pipeline = GraphicsPipelineManager::Get()->CreatePipeline("My Pipeline", info);
 
-	BufferManager::CreateVertexBuffer(m_VertexBuffer, m_VertexBufferMemory, (void*)vertices.data(), sizeof(vertices[0]) * vertices.size());
-	BufferManager::CreateIndexBuffer(m_IndexBuffer, m_IndexBufferMemory, (void*)indices.data(), sizeof(indices[0]) * indices.size());
+	m_Mesh = Mesh("assets/objects/viking_room.obj");
 
 	BufferManager::CreateUniformBuffer(m_UniformBuffers, sizeof(UniformBufferObject), m_UniformBuffersMemory, m_UniformBuffersMapped);
 
-	BufferManager::CreateTexture("assets/textures/texture.jpg", m_TextureImage, m_TextureImageMemory);
+	BufferManager::CreateTexture("assets/objects/viking_room.png", m_TextureImage, m_TextureImageMemory);
 	m_TextureView = BufferManager::CreateImageView(m_TextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
 	m_Sampler = BufferManager::CreateSampler();
 
@@ -158,11 +159,7 @@ void CustomLayer::OnDetach()
 
 	vkDeviceWaitIdle(logicalDevice);
 
-	vkDestroyBuffer(logicalDevice, m_VertexBuffer, nullptr);
-	vkFreeMemory(logicalDevice, m_VertexBufferMemory, nullptr);
-
-	vkDestroyBuffer(logicalDevice, m_IndexBuffer, nullptr);
-	vkFreeMemory(logicalDevice, m_IndexBufferMemory, nullptr);
+	m_Mesh.Destroy();
 
 	for (size_t i = 0; i < VKAPP_MAX_FRAMES_IN_FLIGHT; i++) 
 	{
@@ -191,12 +188,12 @@ void CustomLayer::OnRender()
 
 			m_Pipeline.Bind(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
-			vkCmdBindVertexBuffers(buffer, 0, 1, &m_VertexBuffer, offsets.data());
-			vkCmdBindIndexBuffer(buffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+			vkCmdBindVertexBuffers(buffer, 0, 1, &m_Mesh.GetVertexBuffer(), offsets.data());
+			vkCmdBindIndexBuffer(buffer, m_Mesh.GetIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 			vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 0, 1, &m_Pipeline.GetDescriptorSets()[0][currentFrame], 0, nullptr);
 	
-			vkCmdDrawIndexed(buffer, (uint32_t)indices.size(), 1, 0, 0, 0);
+			vkCmdDrawIndexed(buffer, m_Mesh.GetAmountOfIndices(), 1, 0, 0, 0);
 		});
 }
 
@@ -219,7 +216,7 @@ void CustomLayer::UpdateUniformBuffers(float deltaTime, uint32_t imageIndex)
 
 		UniformBufferObject ubo = {};
 		ubo.Model = glm::mat4(1.0f);
-		ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.View = //glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.Proj = glm::perspective(glm::radians(45.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f, 10.0f);
 		ubo.Proj[1][1] *= -1;
 
