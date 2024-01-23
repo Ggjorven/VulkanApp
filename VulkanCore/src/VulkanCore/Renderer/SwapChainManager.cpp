@@ -30,7 +30,7 @@ namespace VkApp
 		s_Instance = this;
 		s_InstanceManager = InstanceManager::Get();
 
-		CreateSwapChain();
+		CreateSwapChain(Application::Get().GetWindow().IsVSync());
 		CreateImageViews();
 		CreateRenderPass();
 		//CreateDepthResources();
@@ -53,7 +53,7 @@ namespace VkApp
 		CreateFramebuffers();
 	}
 
-	void SwapChainManager::RecreateSwapChain()
+	void SwapChainManager::RecreateSwapChain(bool vsync)
 	{
 		auto handle = reinterpret_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
 
@@ -70,7 +70,7 @@ namespace VkApp
 
 		CleanUpSwapChain();
 
-		CreateSwapChain();
+		CreateSwapChain(vsync);
 		CreateImageViews();
 		CreateDepthResources();
 		CreateFramebuffers();
@@ -79,12 +79,12 @@ namespace VkApp
 	// ===================================
 	// -------- Initialization -----------
 	// ===================================
-	void SwapChainManager::CreateSwapChain()
+	void SwapChainManager::CreateSwapChain(bool vsync)
 	{
 		InstanceManager::SwapChainSupportDetails swapChainSupport = s_InstanceManager->QuerySwapChainSupport(s_InstanceManager->m_PhysicalDevice);
 
 		VkSurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupport.Formats);
-		VkPresentModeKHR presentMode = ChooseSwapPresentMode(swapChainSupport.PresentModes);
+		VkPresentModeKHR presentMode = ChooseSwapPresentMode(swapChainSupport.PresentModes, vsync);
 		VkExtent2D extent = ChooseSwapExtent(swapChainSupport.Capabilities);
 
 		// Note(Jorben): +1 because sticking to the minimum can cause us to wait on the driver sometimes
@@ -264,11 +264,14 @@ namespace VkApp
 		return availableFormats[0];
 	}
 
-	VkPresentModeKHR SwapChainManager::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+	VkPresentModeKHR SwapChainManager::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes, bool vsync)
 	{
 		for (const auto& availablePresentMode : availablePresentModes)
 		{
-			if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) // Note(Jorben): Maybe change this back to triple buffering: VK_PRESENT_MODE_MAILBOX_KHR
+			if (!vsync && (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR))
+				return availablePresentMode;
+
+			else if (vsync && availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
 				return availablePresentMode;
 		}
 

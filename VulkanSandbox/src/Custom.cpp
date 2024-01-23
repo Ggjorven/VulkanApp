@@ -107,11 +107,11 @@ void CustomLayer::OnAttach()
 
 	m_Pipeline = GraphicsPipelineManager::Get()->CreatePipeline("My Pipeline", info);
 
-	m_Mesh = Mesh("assets/objects/viking_room.obj");
+	m_Mesh = Mesh("assets/objects/Cat.obj");
 
 	BufferManager::CreateUniformBuffer(m_UniformBuffers, sizeof(UniformBufferObject), m_UniformBuffersMemory, m_UniformBuffersMapped);
 
-	BufferManager::CreateTexture("assets/objects/viking_room.png", m_TextureImage, m_TextureImageMemory);
+	BufferManager::CreateTexture("assets/objects/Cat_diffuse.jpg", m_TextureImage, m_TextureImageMemory);
 	m_TextureView = BufferManager::CreateImageView(m_TextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
 	m_Sampler = BufferManager::CreateSampler();
 
@@ -186,6 +186,18 @@ void CustomLayer::OnDetach()
 void CustomLayer::OnUpdate(float deltaTime)
 {
 	UpdateUniformBuffers(deltaTime, Renderer::Get()->GetCurrentImage());
+
+	static float timer = 0.0f;
+	timer += deltaTime;
+	if (timer > 0.5f)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		std::string title = fmt::format("[VulkanApp] Running at {} FPS", (int)io.Framerate);
+		Application::Get().GetWindow().SetTitle(title.c_str());
+
+		timer = 0.0f;
+	}
 }
 
 void CustomLayer::OnRender()
@@ -208,8 +220,6 @@ void CustomLayer::OnRender()
 
 void CustomLayer::OnImGuiRender()
 {
-	ImGui::ShowMetricsWindow();
-
 	ImGui::Begin("Camera Settings");
 
 	ImGui::DragFloat("FOV", &m_Camera.GetCameraSettings().FOV);
@@ -236,10 +246,12 @@ void CustomLayer::UpdateUniformBuffers(float deltaTime, uint32_t imageIndex)
 	{
 		m_Camera.OnUpdate(deltaTime);
 
-		UniformBufferObject ubo = {};
-		//ubo.Model = glm::mat4(1.0f);
-		ubo.Model = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		static float sum = 0.0f;
+		sum += deltaTime;
 
+		UniformBufferObject ubo = {};
+		ubo.Model = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		ubo.Model = glm::rotate(ubo.Model, sum * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 		ubo.View = m_Camera.GetViewMatrix();
 		ubo.Proj = m_Camera.GetProjectionMatrix();

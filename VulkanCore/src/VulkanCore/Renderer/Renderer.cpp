@@ -1,6 +1,8 @@
 #include "vcpch.h"
 #include "Renderer.hpp"
 
+#include "VulkanCore/Core/Application.hpp"
+
 #include "VulkanCore/Core/Logging.hpp"
 
 namespace VkApp
@@ -65,7 +67,7 @@ namespace VkApp
 
 	void Renderer::OnResize(uint32_t width, uint32_t height)
 	{
-		s_Instance->m_SwapChainManager.RecreateSwapChain();
+		s_Instance->m_SwapChainManager.RecreateSwapChain(Application::Get().GetWindow().IsVSync());
 	}
 
 	// ===================================
