@@ -4,33 +4,72 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <VulkanCore/Core/Application.hpp>
+#include <VulkanCore/Core/Events.hpp>
 
 using namespace VkApp;
+
+struct MovementArea
+{
+public:
+	glm::vec3 Front;
+	glm::vec3 Up;
+	glm::vec3 Right;
+
+	MovementArea(const glm::vec3& front, const glm::vec3& up, const glm::vec3& right)
+		: Front(front), Up(up), Right(right)
+	{
+	}
+};
+
+struct CameraSettings
+{
+public:
+	float Yaw;
+	float Pitch;
+	float FOV;
+
+	CameraSettings(float yaw, float pitch, float fov)
+		: Yaw(yaw), Pitch(pitch), FOV(fov)
+	{
+	}
+};
 
 class Camera
 {
 public:
-	Camera();
+	Camera() = default;
+	Camera(float aspectRatio);
+	virtual ~Camera();
 
 	void OnUpdate(float deltaTime);
+	void OnEvent(Event& e);
 
-	glm::mat4 GetViewMatrix() const { return m_View; }
+	inline glm::mat4 GetViewMatrix() const { return m_ViewMatrix; }
+	inline glm::mat4 GetProjectionMatrix() const { return m_ProjectionMatrix; }
+
+	inline void SetAspectRatio(float aspectRatio) { m_AspectRatio = aspectRatio; UpdateMatrices(); UpdateArea(); }
 
 private:
-	bool m_Escaped = true;
+	void UpdateMatrices();
+	void UpdateArea();
 
-	glm::vec3 m_Position = glm::vec3(1.0f, 1.0f, 1.0f);
-	glm::vec3 m_Up = glm::vec3(0.0f, 0.0f, 1.0f);
-	glm::vec3 m_Front = glm::vec3(0.0f, 0.0f, -1.0f);
-	glm::vec3 m_Right = glm::vec3(1.0f);
-	float m_Speed = 2.5f;
+	bool Resize(WindowResizeEvent& e);
 
-	float m_Yaw = -90.0f;
-	float m_Pitch = 0.0f;
-	float m_LastX = 0.0f;
-	float m_LastY = 0.0f;
-	bool m_FirstMouse = true;
+private:
+	glm::vec3 m_Position = { 0.0f, 0.0f, 0.0f };
+
+	glm::mat4 m_ViewMatrix = { };
+	glm::mat4 m_ProjectionMatrix = { };
+	glm::mat4 m_ViewProjectionMatrix = { };
+
+	MovementArea m_Area = { glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f) };
+	CameraSettings m_Properties = { 0.0f, 0.0f, 45.0f };
+
+	glm::vec2 m_LastMousePosition = { 0.0f, 0.0f };
+	bool m_FirstUpdate = true;
+
+	float m_AspectRatio = 0.0f;
+
+	float m_MovementSpeed = 2.5f;
 	float m_MouseSensitivity = 0.1f;
-
-	glm::mat4 m_View = {};
 };

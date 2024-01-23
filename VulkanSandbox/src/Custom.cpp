@@ -151,6 +151,10 @@ void CustomLayer::OnAttach()
 
 		vkUpdateDescriptorSets(InstanceManager::Get()->GetLogicalDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 	}
+
+	auto& window = Application::Get().GetWindow();
+
+	m_Camera.SetAspectRatio((float)window.GetWidth() / (float)window.GetHeight());
 }
 
 void CustomLayer::OnDetach()
@@ -204,6 +208,7 @@ void CustomLayer::OnImGuiRender()
 
 void CustomLayer::OnEvent(Event& e)
 {
+	m_Camera.OnEvent(e);
 }
 
 void CustomLayer::UpdateUniformBuffers(float deltaTime, uint32_t imageIndex)
@@ -212,12 +217,13 @@ void CustomLayer::UpdateUniformBuffers(float deltaTime, uint32_t imageIndex)
 
 	if (!Application::Get().IsMinimized()) // Note(Jorben): Added this line because, glm::perspective doesn't work if the aspect ratio is 0
 	{
-		//m_Camera.OnUpdate(deltaTime);
+		m_Camera.OnUpdate(deltaTime);
 
 		UniformBufferObject ubo = {};
-		ubo.Model = glm::mat4(1.0f);
-		ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.Proj = glm::perspective(glm::radians(45.0f), (float)window.GetWidth() / (float)window.GetHeight(), 0.1f, 10.0f);
+		//ubo.Model = glm::mat4(1.0f);
+		ubo.Model = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		ubo.View = m_Camera.GetViewMatrix();
+		ubo.Proj = m_Camera.GetProjectionMatrix();
 		ubo.Proj[1][1] *= -1;
 
 		BufferManager::SetUniformData(m_UniformBuffersMapped[imageIndex], (void*)(&ubo), sizeof(ubo));

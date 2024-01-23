@@ -42,5 +42,5 @@ private:
 	VkImageView m_TextureView = VK_NULL_HANDLE;
 	VkSampler m_Sampler = VK_NULL_HANDLE;
 
-	//Camera m_Camera;
+	Camera m_Camera;
 };
