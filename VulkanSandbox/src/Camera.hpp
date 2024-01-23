@@ -47,13 +47,19 @@ public:
 	inline glm::mat4 GetViewMatrix() const { return m_ViewMatrix; }
 	inline glm::mat4 GetProjectionMatrix() const { return m_ProjectionMatrix; }
 
-	inline void SetAspectRatio(float aspectRatio) { m_AspectRatio = aspectRatio; UpdateMatrices(); UpdateArea(); }
+	inline glm::vec3& GetPosition() { return m_Position; }
+	inline CameraSettings& GetCameraSettings() { return m_Properties; }
+	inline float& GetSpeed() { return m_MovementSpeed; }
+
+	inline void SetPosition(const glm::vec3& position) { m_Position = position; }
+	inline void SetAspectRatio(float aspectRatio) { m_AspectRatio = aspectRatio; }
 
 private:
 	void UpdateMatrices();
 	void UpdateArea();
 
 	bool Resize(WindowResizeEvent& e);
+	bool Scroll(MouseScrolledEvent& e);
 
 private:
 	glm::vec3 m_Position = { 0.0f, 0.0f, 0.0f };

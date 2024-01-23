@@ -14,6 +14,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <assimp/BaseImporter.h>
 
@@ -155,6 +156,10 @@ void CustomLayer::OnAttach()
 	auto& window = Application::Get().GetWindow();
 
 	m_Camera.SetAspectRatio((float)window.GetWidth() / (float)window.GetHeight());
+	m_Camera.SetPosition(glm::vec3(0.0f, 35.0f, 45.0f));
+
+	m_Camera.GetCameraSettings().Yaw = 270.0f;
+	m_Camera.GetCameraSettings().Pitch = -15.0f;
 }
 
 void CustomLayer::OnDetach()
@@ -204,6 +209,18 @@ void CustomLayer::OnRender()
 void CustomLayer::OnImGuiRender()
 {
 	ImGui::ShowMetricsWindow();
+
+	ImGui::Begin("Camera Settings");
+
+	ImGui::DragFloat("FOV", &m_Camera.GetCameraSettings().FOV);
+	ImGui::Spacing();
+	ImGui::DragFloat3("Position", glm::value_ptr(m_Camera.GetPosition()), 1.0f);
+	ImGui::DragFloat("Yaw", &m_Camera.GetCameraSettings().Yaw);
+	ImGui::DragFloat("Pitch", &m_Camera.GetCameraSettings().Pitch);
+	ImGui::Spacing();
+	ImGui::DragFloat("Speed", &m_Camera.GetSpeed(), 0.2f);
+
+	ImGui::End();
 }
 
 void CustomLayer::OnEvent(Event& e)
@@ -222,6 +239,8 @@ void CustomLayer::UpdateUniformBuffers(float deltaTime, uint32_t imageIndex)
 		UniformBufferObject ubo = {};
 		//ubo.Model = glm::mat4(1.0f);
 		ubo.Model = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+
 		ubo.View = m_Camera.GetViewMatrix();
 		ubo.Proj = m_Camera.GetProjectionMatrix();
 		ubo.Proj[1][1] *= -1;

@@ -16,8 +16,6 @@ Camera::~Camera()
 
 void Camera::OnUpdate(float deltaTime)
 {
-    UpdateMatrices();
-
     if (Input::IsKeyPressed(Key::LeftAlt))
     {
         float velocity = m_MovementSpeed * deltaTime;
@@ -84,8 +82,6 @@ void Camera::OnUpdate(float deltaTime)
         if (settings.Pitch < -89.0f)
             settings.Pitch = -89.0f;
 
-        UpdateArea();
-
         Input::SetCursorMode(CursorMode::Disabled);
     }
     else
@@ -93,6 +89,9 @@ void Camera::OnUpdate(float deltaTime)
         Input::SetCursorMode(CursorMode::Shown);
         m_FirstUpdate = true;
     }
+
+    UpdateMatrices();
+    UpdateArea();
 }
 
 void Camera::OnEvent(Event& e)
@@ -100,6 +99,7 @@ void Camera::OnEvent(Event& e)
     EventHandler handler(e);
 
     handler.Handle<WindowResizeEvent>(VKAPP_BIND_EVENT_FN(Camera::Resize));
+    handler.Handle<MouseScrolledEvent>(VKAPP_BIND_EVENT_FN(Camera::Scroll));
 }
 
 void Camera::UpdateMatrices()
@@ -125,6 +125,13 @@ bool Camera::Resize(WindowResizeEvent& e)
 {
     m_AspectRatio = (float)e.GetWidth() / (float)e.GetHeight();
 
+    return false;
+}
+
+bool Camera::Scroll(MouseScrolledEvent& e)
+{
+    m_MovementSpeed += e.GetYOffset() * 0.1f;
+    
     return false;
 }
 
