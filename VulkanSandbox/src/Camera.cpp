@@ -3,70 +3,135 @@
 #include <VulkanCore/Core/Input/Input.hpp>
 
 
-Camera::Camera()
+Camera::Camera(float aspectRatio)
+    : m_AspectRatio(aspectRatio)
+{
+    UpdateMatrices();
+    UpdateArea();
+}
+
+Camera::~Camera()
 {
 }
 
 void Camera::OnUpdate(float deltaTime)
 {
-    const Window& window = Application::Get().GetWindow();
-
-    if (Input::IsKeyPressed(Key::Escape))
-        m_Escaped = !m_Escaped;
-
-    if (!Application::Get().IsMinimized() && !m_Escaped)
+    if (Input::IsKeyPressed(Key::LeftAlt))
     {
-        // Keyboard input
-        if (Input::IsKeyPressed(Key::W))
-            m_Position += m_Speed * m_Front * deltaTime;
-        if (Input::IsKeyPressed(Key::S))
-            m_Position -= m_Speed * m_Front * deltaTime;
-        if (Input::IsKeyPressed(Key::A))
-            m_Position -= glm::normalize(glm::cross(m_Front, m_Up)) * m_Speed * deltaTime;
-        if (Input::IsKeyPressed(Key::D))
-            m_Position += glm::normalize(glm::cross(m_Front, m_Up)) * m_Speed * deltaTime;
+        float velocity = m_MovementSpeed * deltaTime;
+        glm::vec3 moveDirection = { 0.0f, 0.0f, 0.0f };
 
-        // Mouse input for camera
-        glm::vec2 mousePos = Input::GetMousePosition();
-        if (m_FirstMouse)
+        auto& area = m_Area;
+
+        // Calculate forward/backward and left/right movement.
+        if (Input::IsKeyPressed(Key::W))
+            moveDirection += area.Front;
+        if (Input::IsKeyPressed(Key::S))
+            moveDirection -= area.Front;
+        if (Input::IsKeyPressed(Key::A))
+            moveDirection -= area.Right;
+        if (Input::IsKeyPressed(Key::D))
+            moveDirection += area.Right;
+
+        // Calculate up/down movement.
+        if (Input::IsKeyPressed(Key::Space))
+            moveDirection += area.Up;
+        if (Input::IsKeyPressed(Key::LeftShift))
+            moveDirection -= area.Up;
+
+        if (glm::length(moveDirection) > 0.0f)
+            moveDirection = glm::normalize(moveDirection);
+
+        // Update the camera position.
+        m_Position += moveDirection * velocity;
+
+        if (m_FirstUpdate)
         {
-            Input::SetCursorPosition({ (float)window.GetWidth() / 2.0f, (float)window.GetHeight() / 2.0f });
-            m_LastX = mousePos.x;
-            m_LastY = mousePos.y;
-            m_FirstMouse = false;
+            m_LastMousePosition = Input::GetMousePosition();
+            m_FirstUpdate = false;
         }
 
-        float xOffset = mousePos.x - m_LastX;
-        float yOffset = m_LastY - mousePos.y; // Reversed since y-coordinates range from bottom to top
-        m_LastX = mousePos.x;
-        m_LastY = mousePos.y;
+        //Mouse movement
+        auto mousePosition = Input::GetMousePosition();
+
+        float xOffset = static_cast<float>(mousePosition.x - m_LastMousePosition.x);
+        float yOffset = static_cast<float>(m_LastMousePosition.y - mousePosition.y);
+
+        //Reset cursor
+        Window& window = Application::Get().GetWindow();
+        int width = window.GetWidth();
+        int height = window.GetHeight();
+
+        Input::SetCursorPosition({ width / 2.0f, height / 2.0f });
+
+        m_LastMousePosition.x = static_cast<float>(width / 2.f);
+        m_LastMousePosition.y = static_cast<float>(height / 2.f);
 
         xOffset *= m_MouseSensitivity;
         yOffset *= m_MouseSensitivity;
 
-        m_Yaw += xOffset;
-        m_Pitch += yOffset;
+        //Set new settings
+        auto& settings = m_Properties;
 
-        // Make sure that when pitch is out of bounds, screen doesn't get flipped
-        if (m_Pitch > 89.0f)
-            m_Pitch = 89.0f;
-        if (m_Pitch < -89.0f)
-            m_Pitch = -89.0f;
+        settings.Yaw += xOffset;
+        settings.Pitch += yOffset;
 
-        // Calculate the new Front vector
-        glm::vec3 front(1.0f);
-        front.x = cos(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
-        front.y = sin(glm::radians(m_Pitch));
-        front.z = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
-        m_Front = glm::normalize(front);
+        // Cap movement
+        if (settings.Pitch > 89.0f)
+            settings.Pitch = 89.0f;
+        if (settings.Pitch < -89.0f)
+            settings.Pitch = -89.0f;
 
-        // Calculate the Right vector
-        m_Right = glm::normalize(glm::cross(m_Front, m_Up)); // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-
-        // Update the View matrix
-        m_View = glm::lookAt(m_Position, m_Position + m_Front, m_Up);
-
-        Input::SetCursorPosition({ (float)window.GetWidth() / 2.0f, (float)window.GetHeight() / 2.0f });
+        Input::SetCursorMode(CursorMode::Disabled);
     }
+    else
+    {
+        Input::SetCursorMode(CursorMode::Shown);
+        m_FirstUpdate = true;
+    }
+
+    UpdateMatrices();
+    UpdateArea();
+}
+
+void Camera::OnEvent(Event& e)
+{
+    EventHandler handler(e);
+
+    handler.Handle<WindowResizeEvent>(VKAPP_BIND_EVENT_FN(Camera::Resize));
+    handler.Handle<MouseScrolledEvent>(VKAPP_BIND_EVENT_FN(Camera::Scroll));
+}
+
+void Camera::UpdateMatrices()
+{
+    m_ViewMatrix = glm::lookAt(m_Position, m_Position + m_Area.Front, m_Area.Up);
+    m_ProjectionMatrix = glm::perspective(glm::radians(m_Properties.FOV), m_AspectRatio, 0.1f, 100.0f);
+    m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewProjectionMatrix;
+}
+
+void Camera::UpdateArea()
+{
+    glm::vec3 newFront(1.0f);
+
+    newFront.x = cos(glm::radians(m_Properties.Yaw)) * cos(glm::radians(m_Properties.Pitch));
+    newFront.y = sin(glm::radians(m_Properties.Pitch));
+    newFront.z = sin(glm::radians(m_Properties.Yaw)) * cos(glm::radians(m_Properties.Pitch));
+
+    m_Area.Front = glm::normalize(newFront);
+    m_Area.Right = glm::normalize(glm::cross(m_Area.Front, m_Area.Up));
+}
+
+bool Camera::Resize(WindowResizeEvent& e)
+{
+    m_AspectRatio = (float)e.GetWidth() / (float)e.GetHeight();
+
+    return false;
+}
+
+bool Camera::Scroll(MouseScrolledEvent& e)
+{
+    m_MovementSpeed += e.GetYOffset() * 0.1f;
+    
+    return false;
 }
 

@@ -24,6 +24,8 @@ namespace VkApp
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override { return m_Data.Vsync; }
 
+		void SetTitle(const std::string& title) override;
+
 		void* GetNativeWindow() const override { return (void*)m_Window; }
 
 	private:
@@ -40,4 +42,5 @@ namespace VkApp
 		WindowData m_Data;
 
 	};
+
 }

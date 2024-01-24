@@ -19,7 +19,7 @@ namespace VkApp
 		void Destroy();
 
 		void InitCommandPoolRequiredFunctions();
-		void RecreateSwapChain();
+		void RecreateSwapChain(bool vsync = false);
 
 		inline VkRenderPass& GetRenderPass() { return m_RenderPass; }
 		inline VkExtent2D& GetExtent() { return m_SwapChainExtent;  }
@@ -28,7 +28,7 @@ namespace VkApp
 		inline std::vector<VkImageView>& GetImageViews() { return m_SwapChainImageViews; }
 
 	private: // Initialization functions
-		void CreateSwapChain();
+		void CreateSwapChain(bool vsync = false);
 		void CreateImageViews();
 		void CreateRenderPass();
 
@@ -37,7 +37,7 @@ namespace VkApp
 
 	private: // Helper functions
 		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-		VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+		VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes, bool vsync = false);
 		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
 		VkFormat FindDepthFormat();
