@@ -147,7 +147,7 @@ namespace VkApp
 
 		for (size_t i = 0; i < m_SwapChainImages.size(); i++)
 		{
-			m_SwapChainImageViews[i] = BufferManager::CreateImageView(m_SwapChainImages[i], m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+			m_SwapChainImageViews[i] = BufferManager::CreateImageView(m_SwapChainImages[i], m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 		}
 	}
 
@@ -217,11 +217,11 @@ namespace VkApp
 	{
 		VkFormat depthFormat = FindDepthFormat();
 
-		BufferManager::CreateImage(m_SwapChainExtent.width, m_SwapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage, m_DepthImageMemory);
+		BufferManager::CreateImage(m_SwapChainExtent.width, m_SwapChainExtent.height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage, m_DepthImageMemory);
 
-		m_DepthImageView = BufferManager::CreateImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+		m_DepthImageView = BufferManager::CreateImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 
-		BufferManager::TransitionImageToLayout(m_DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+		BufferManager::TransitionImageToLayout(m_DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 	}
 
 	void SwapChainManager::CreateFramebuffers()
@@ -242,7 +242,7 @@ namespace VkApp
 			framebufferInfo.layers = 1;
 
 			if (vkCreateFramebuffer(s_InstanceManager->m_Device, &framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]) != VK_SUCCESS)
-				throw std::runtime_error("Failed to create framebuffer!");
+				VKAPP_LOG_ERROR("Failed to create framebuffer!");
 		}
 	}
 
