@@ -66,6 +66,7 @@ namespace VkApp
 		//Window creation
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		//if (!properties.Titlebar) glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+
 		m_Data.Vsync = properties.VSync;
 
 		m_Window = glfwCreateWindow((int)properties.Width, (int)properties.Height, properties.Name.c_str(), nullptr, nullptr);

@@ -48,9 +48,10 @@ void CustomLayer::OnAttach()
 
 	BufferManager::CreateUniformBuffer(m_UniformBuffers, sizeof(UniformBufferObject), m_UniformBuffersMemory, m_UniformBuffersMapped);
 
-	BufferManager::CreateTexture("assets/objects/Cat_diffuse.jpg", m_TextureImage, m_TextureImageMemory);
-	m_TextureView = BufferManager::CreateImageView(m_TextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
-	m_Sampler = BufferManager::CreateSampler();
+	uint32_t mipLevels = 0;
+	BufferManager::CreateTexture("assets/objects/Cat_diffuse.jpg", m_TextureImage, m_TextureImageMemory, mipLevels);
+	m_TextureView = BufferManager::CreateImageView(m_TextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
+	m_Sampler = BufferManager::CreateSampler(mipLevels);
 
 	// Initialize the descriptor sets/uniforms
 	for (size_t i = 0; i < VKAPP_MAX_FRAMES_IN_FLIGHT; i++) 
@@ -188,7 +189,6 @@ void CustomLayer::UpdateUniformBuffers(float deltaTime, uint32_t imageIndex)
 
 		UniformBufferObject ubo = {};
 		ubo.Model = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		ubo.Model = glm::rotate(ubo.Model, sum * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 		ubo.View = m_Camera.GetViewMatrix();
 
