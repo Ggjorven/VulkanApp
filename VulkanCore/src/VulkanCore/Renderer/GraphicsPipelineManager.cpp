@@ -138,7 +138,7 @@ namespace VkApp
 
 	void GraphicsPipelineManager::Destroy()
 	{
-		DestroyCurrentPipeline();
+		DestroyAllPipelines();
 
 		vkDestroyDescriptorPool(s_InstanceManager->m_Device, m_ImGuiDescriptorPool, nullptr);
 
@@ -146,22 +146,45 @@ namespace VkApp
 		s_Instance = nullptr;
 	}
 
-	void GraphicsPipelineManager::DestroyCurrentPipeline()
+	GraphicsPipeline& GraphicsPipelineManager::GetPipeline(const std::string& id)
 	{
-		vkDeviceWaitIdle(s_InstanceManager->m_Device);
+		auto it = m_GraphicsPipelines.find(id);
 
-		vkDestroyPipeline(s_InstanceManager->m_Device, m_GraphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(s_InstanceManager->m_Device, m_PipelineLayout, nullptr);
-
-		for (auto& pool : m_DescriptorPools)
+		if (it == m_GraphicsPipelines.end())
 		{
-			vkDestroyDescriptorPool(s_InstanceManager->m_Device, pool, nullptr);
-		}
+			VKAPP_LOG_WARN("Graphics Pipeline by ID \"{0}\" not found", id);
 
-		for (auto& layout : m_DescriptorLayouts)
-		{
-			vkDestroyDescriptorSetLayout(s_InstanceManager->m_Device, layout, nullptr);
+			GraphicsPipeline pipeline;
+			return pipeline;
 		}
+		else 
+		{
+			return m_GraphicsPipelines[id];
+		}
+	}
+
+	void GraphicsPipelineManager::DestroyPipeline(const std::string& id)
+	{
+		GetPipeline(id).Destroy();
+		m_GraphicsPipelines.erase(id);
+	}
+
+	void GraphicsPipelineManager::DestroyAllPipelines()
+	{
+		for (auto& pipeline : m_GraphicsPipelines)
+		{
+			pipeline.second.Destroy();
+			//m_GraphicsPipelines.erase(pipeline.first);
+		}
+	}
+
+	GraphicsPipeline& GraphicsPipelineManager::CreatePipeline(const std::string& id, const PipelineInfo& info)
+	{
+		GraphicsPipeline pipeline(info);
+
+		m_GraphicsPipelines[id] = pipeline;
+
+		return m_GraphicsPipelines[id];
 	}
 
 	std::vector<char> GraphicsPipelineManager::ReadFile(const std::filesystem::path& path)
@@ -195,14 +218,6 @@ namespace VkApp
 		return shaderModule;
 	}
 
-	void GraphicsPipelineManager::CreatePipeline(const PipelineInfo& info)
-	{
-		CreateDescriptorSetLayout(info);
-		CreateGraphicsPipeline(info);
-		CreateDescriptorPool(info);
-		CreateDescriptorSets(info);
-	}
-
 	// ===================================
 	// -------- Initialization -----------
 	// ===================================
@@ -212,7 +227,38 @@ namespace VkApp
 	// ===================================
 	// ------------ Helper ---------------
 	// ===================================
-	void GraphicsPipelineManager::CreateDescriptorSetLayout(const PipelineInfo& info)
+	GraphicsPipeline::GraphicsPipeline(const PipelineInfo& info)
+	{
+		CreateDescriptorSetLayout(info);
+		CreateGraphicsPipeline(info);
+		CreateDescriptorPool(info);
+		CreateDescriptorSets(info);
+	}
+
+	void GraphicsPipeline::Destroy()
+	{
+		vkDeviceWaitIdle(s_InstanceManager->m_Device);
+
+		vkDestroyPipeline(s_InstanceManager->m_Device, m_GraphicsPipeline, nullptr);
+		vkDestroyPipelineLayout(s_InstanceManager->m_Device, m_PipelineLayout, nullptr);
+
+		for (auto& pool : m_DescriptorPools)
+		{
+			vkDestroyDescriptorPool(s_InstanceManager->m_Device, pool, nullptr);
+		}
+
+		for (auto& layout : m_DescriptorLayouts)
+		{
+			vkDestroyDescriptorSetLayout(s_InstanceManager->m_Device, layout, nullptr);
+		}
+	}
+
+	void GraphicsPipeline::Bind(VkCommandBuffer& buffer, VkPipelineBindPoint bindPoint)
+	{
+		vkCmdBindPipeline(buffer, bindPoint, m_GraphicsPipeline);
+	}
+
+	void GraphicsPipeline::CreateDescriptorSetLayout(const PipelineInfo& info)
 	{
 		if (!info.DescriptorSets.Set0.empty())
 			m_DescriptorLayouts.push_back(DescriptorSets::GetDescriptorSetLayout(info.DescriptorSets.Set0));
@@ -224,10 +270,10 @@ namespace VkApp
 			m_DescriptorLayouts.push_back(DescriptorSets::GetDescriptorSetLayout(info.DescriptorSets.Set3));
 	}
 
-	void GraphicsPipelineManager::CreateGraphicsPipeline(const PipelineInfo& info)
+	void GraphicsPipeline::CreateGraphicsPipeline(const PipelineInfo& info)
 	{
-		VkShaderModule vertShaderModule = CreateShaderModule(info.VertexShader);
-		VkShaderModule fragShaderModule = CreateShaderModule(info.FragmentShader);
+		VkShaderModule vertShaderModule = GraphicsPipelineManager::CreateShaderModule(info.VertexShader);
+		VkShaderModule fragShaderModule = GraphicsPipelineManager::CreateShaderModule(info.FragmentShader);
 
 		// Vertex shader info
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
@@ -296,6 +342,18 @@ namespace VkApp
 		colorBlending.blendConstants[2] = 0.0f;
 		colorBlending.blendConstants[3] = 0.0f;
 
+		VkPipelineDepthStencilStateCreateInfo depthStencil = {};
+		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depthStencil.depthTestEnable = VK_TRUE;
+		depthStencil.depthWriteEnable = VK_TRUE;
+		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+		depthStencil.depthBoundsTestEnable = VK_FALSE;
+		depthStencil.minDepthBounds = 0.0f; // Optional
+		depthStencil.maxDepthBounds = 1.0f; // Optional
+		depthStencil.stencilTestEnable = VK_FALSE;
+		depthStencil.front = {}; // Optional
+		depthStencil.back = {}; // Optional
+
 		std::vector<VkDynamicState> dynamicStates = {
 			VK_DYNAMIC_STATE_VIEWPORT,
 			VK_DYNAMIC_STATE_SCISSOR
@@ -325,7 +383,7 @@ namespace VkApp
 		pipelineInfo.pViewportState = &viewportState;
 		pipelineInfo.pRasterizationState = &rasterizer;
 		pipelineInfo.pMultisampleState = &multisampling;
-		pipelineInfo.pDepthStencilState = nullptr; // Optional
+		pipelineInfo.pDepthStencilState = &depthStencil;
 		pipelineInfo.pColorBlendState = &colorBlending;
 		pipelineInfo.pDynamicState = &dynamicState;
 		pipelineInfo.layout = m_PipelineLayout;
@@ -342,7 +400,7 @@ namespace VkApp
 		vkDestroyShaderModule(s_InstanceManager->m_Device, vertShaderModule, nullptr);
 	}
 
-	void GraphicsPipelineManager::CreateDescriptorPool(const PipelineInfo& info)
+	void GraphicsPipeline::CreateDescriptorPool(const PipelineInfo& info)
 	{
 		if (!info.DescriptorSets.Set0.empty())
 			m_DescriptorPools.push_back(DescriptorSets::CreatePool(info.DescriptorSets.Set0));
@@ -354,7 +412,7 @@ namespace VkApp
 			m_DescriptorPools.push_back(DescriptorSets::CreatePool(info.DescriptorSets.Set3));
 	}
 
-	void GraphicsPipelineManager::CreateDescriptorSets(const PipelineInfo& info)
+	void GraphicsPipeline::CreateDescriptorSets(const PipelineInfo& info)
 	{
 		if (!info.DescriptorSets.Set0.empty())
 			m_DescriptorSets.push_back(DescriptorSets::CreateDescriptorSets(m_DescriptorLayouts[0], m_DescriptorPools[0], info.DescriptorSets.Set0));

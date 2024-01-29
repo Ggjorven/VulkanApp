@@ -30,6 +30,7 @@ project "VulkanSandbox"
 		"%{IncludeDir.spdlog}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
+		"%{IncludeDir.assimp}",
 		"%{IncludeDir.VulkanSDK}",
 		"%{IncludeDir.VMA}"
 	}
@@ -69,3 +70,24 @@ project "VulkanSandbox"
 		defines "VKAPP_DIST"
 		runtime "Release"
 		optimize "on"
+
+	filter { "system:windows", "configurations:Debug" }
+		postbuildcommands
+		{
+			'{COPYFILE} "%{wks.location}/vendor/assimp/bin/windows/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
+		}
+
+	filter { "system:windows", "configurations:Release" }
+		postbuildcommands
+		{
+			'{COPYFILE} "%{wks.location}/vendor/assimp/bin/windows/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+		}
+
+	-- Dist filter for Windows for Windowed Applications
+	filter { "system:windows", "configurations:Dist" }
+		kind "WindowedApp"
+
+		postbuildcommands
+		{
+			'{COPYFILE} "%{wks.location}/vendor/assimp/bin/windows/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+		}

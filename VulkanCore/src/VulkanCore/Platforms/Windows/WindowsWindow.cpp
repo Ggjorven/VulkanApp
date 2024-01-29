@@ -4,7 +4,7 @@
 #include "VulkanCore/Core/Events.hpp"
 #include "VulkanCore/Core/Logging.hpp"
 
-//#include "Crystal/Core/Events/Input/Input.hpp"
+#include "VulkanCore/Renderer/SwapChainManager.hpp"
 
 namespace VkApp
 {
@@ -37,9 +37,15 @@ namespace VkApp
 
 	void WindowsWindow::SetVSync(bool enabled)
 	{
-		// TODO(Jorben): Set this for vulkan
-		//glfwSwapInterval(enabled);
+		if (SwapChainManager::Get())
+			SwapChainManager::Get()->RecreateSwapChain(enabled);
+		
 		m_Data.Vsync = enabled;
+	}
+
+	void WindowsWindow::SetTitle(const std::string& title)
+	{
+		glfwSetWindowTitle(m_Window, title.c_str());
 	}
 	
 	bool WindowsWindow::Init(WindowProperties properties)
@@ -61,11 +67,12 @@ namespace VkApp
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		//if (!properties.Titlebar) glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 
+		m_Data.Vsync = properties.VSync;
+
 		m_Window = glfwCreateWindow((int)properties.Width, (int)properties.Height, properties.Name.c_str(), nullptr, nullptr);
 		s_Instances++;
 
 		glfwSetWindowUserPointer(m_Window, &m_Data); //So we can access/get to the data in lambda functions
-		SetVSync(properties.VSync);
 
 		//Set window position
 		if (properties.CustomPos) glfwSetWindowPos(m_Window, properties.X, properties.Y);

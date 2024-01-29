@@ -7,6 +7,8 @@
 
 #include "VulkanCore/ImGui/BaseImGuiLayer.hpp"
 
+#include <vector>
+#include <memory>
 #include <filesystem>
 
 namespace VkApp
@@ -43,6 +45,8 @@ namespace VkApp
 
 		inline static Application& Get() { return *s_Instance; }
 		inline static std::filesystem::path GetWorkingDirectory() { return std::filesystem::path(s_Instance->m_AppInfo.Args[0]).parent_path(); }
+
+		inline bool IsMinimized() const { return m_Minimized; }
 
 	private:
 		void Init(const AppInfo& appInfo);

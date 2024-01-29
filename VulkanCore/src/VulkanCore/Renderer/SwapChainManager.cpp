@@ -9,7 +9,7 @@
 #include "VulkanCore/Core/Application.hpp"
 
 #include "VulkanCore/Renderer/InstanceManager.hpp" // For the retrieval of the logical device
-#include "VulkanCore/Utils/BufferManager.hpp" // For the retrieval of the logical device
+#include "VulkanCore/Utils/BufferManager.hpp" 
 
 namespace VkApp
 {
@@ -30,10 +30,11 @@ namespace VkApp
 		s_Instance = this;
 		s_InstanceManager = InstanceManager::Get();
 
-		CreateSwapChain();
+		CreateSwapChain(Application::Get().GetWindow().IsVSync());
 		CreateImageViews();
 		CreateRenderPass();
-		CreateFramebuffers();
+		//CreateDepthResources();
+		//CreateFramebuffers();
 	}
 
 	void SwapChainManager::Destroy()
@@ -46,7 +47,13 @@ namespace VkApp
 		s_Instance = nullptr;
 	}
 
-	void SwapChainManager::RecreateSwapChain()
+	void SwapChainManager::InitCommandPoolRequiredFunctions()
+	{
+		CreateDepthResources();
+		CreateFramebuffers();
+	}
+
+	void SwapChainManager::RecreateSwapChain(bool vsync)
 	{
 		auto handle = reinterpret_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
 
@@ -63,20 +70,21 @@ namespace VkApp
 
 		CleanUpSwapChain();
 
-		CreateSwapChain();
+		CreateSwapChain(vsync);
 		CreateImageViews();
+		CreateDepthResources();
 		CreateFramebuffers();
 	}
 
 	// ===================================
 	// -------- Initialization -----------
 	// ===================================
-	void SwapChainManager::CreateSwapChain()
+	void SwapChainManager::CreateSwapChain(bool vsync)
 	{
 		InstanceManager::SwapChainSupportDetails swapChainSupport = s_InstanceManager->QuerySwapChainSupport(s_InstanceManager->m_PhysicalDevice);
 
 		VkSurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupport.Formats);
-		VkPresentModeKHR presentMode = ChooseSwapPresentMode(swapChainSupport.PresentModes);
+		VkPresentModeKHR presentMode = ChooseSwapPresentMode(swapChainSupport.PresentModes, vsync);
 		VkExtent2D extent = ChooseSwapExtent(swapChainSupport.Capabilities);
 
 		// Note(Jorben): +1 because sticking to the minimum can cause us to wait on the driver sometimes
@@ -139,12 +147,13 @@ namespace VkApp
 
 		for (size_t i = 0; i < m_SwapChainImages.size(); i++)
 		{
-			m_SwapChainImageViews[i] = BufferManager::CreateImageView(m_SwapChainImages[i], m_SwapChainImageFormat);
+			m_SwapChainImageViews[i] = BufferManager::CreateImageView(m_SwapChainImages[i], m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 		}
 	}
 
 	void SwapChainManager::CreateRenderPass()
 	{
+		// Colour
 		VkAttachmentDescription colorAttachment = {};
 		colorAttachment.format = m_SwapChainImageFormat;
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -159,23 +168,42 @@ namespace VkApp
 		colorAttachmentRef.attachment = 0;
 		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+		// Depth
+		VkAttachmentDescription depthAttachment = {};
+		depthAttachment.format = FindDepthFormat();
+		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference depthAttachmentRef = {};
+		depthAttachmentRef.attachment = 1;
+		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		// Subpass
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorAttachmentRef;
+		subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
 		VkSubpassDependency dependency = {};
 		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependency.dstSubpass = 0;
-		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 		dependency.srcAccessMask = 0;
-		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+		std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
 
 		VkRenderPassCreateInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.attachmentCount = 1;
-		renderPassInfo.pAttachments = &colorAttachment;
+		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+		renderPassInfo.pAttachments = attachments.data();
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
 		renderPassInfo.dependencyCount = 1;
@@ -185,25 +213,36 @@ namespace VkApp
 			VKAPP_LOG_ERROR("Failed to create render pass!");
 	}
 
+	void SwapChainManager::CreateDepthResources()
+	{
+		VkFormat depthFormat = FindDepthFormat();
+
+		BufferManager::CreateImage(m_SwapChainExtent.width, m_SwapChainExtent.height, 1, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage, m_DepthImageMemory);
+
+		m_DepthImageView = BufferManager::CreateImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+
+		BufferManager::TransitionImageToLayout(m_DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
+	}
+
 	void SwapChainManager::CreateFramebuffers()
 	{
 		m_SwapChainFramebuffers.resize(m_SwapChainImageViews.size());
 
 		for (size_t i = 0; i < m_SwapChainImageViews.size(); i++)
 		{
-			VkImageView attachments[] = { m_SwapChainImageViews[i] };
+			std::array<VkImageView, 2> attachments = { m_SwapChainImageViews[i], m_DepthImageView };
 
 			VkFramebufferCreateInfo framebufferInfo = {};
 			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			framebufferInfo.renderPass = m_RenderPass;
-			framebufferInfo.attachmentCount = 1;
-			framebufferInfo.pAttachments = attachments;
+			framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+			framebufferInfo.pAttachments = attachments.data();
 			framebufferInfo.width = m_SwapChainExtent.width;
 			framebufferInfo.height = m_SwapChainExtent.height;
 			framebufferInfo.layers = 1;
 
 			if (vkCreateFramebuffer(s_InstanceManager->m_Device, &framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]) != VK_SUCCESS)
-				throw std::runtime_error("Failed to create framebuffer!");
+				VKAPP_LOG_ERROR("Failed to create framebuffer!");
 		}
 	}
 
@@ -225,11 +264,14 @@ namespace VkApp
 		return availableFormats[0];
 	}
 
-	VkPresentModeKHR SwapChainManager::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+	VkPresentModeKHR SwapChainManager::ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes, bool vsync)
 	{
 		for (const auto& availablePresentMode : availablePresentModes)
 		{
-			if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) // Note(Jorben): Maybe change this back to triple buffering: VK_PRESENT_MODE_MAILBOX_KHR
+			if (!vsync && (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR))
+				return availablePresentMode;
+
+			else if (vsync && availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
 				return availablePresentMode;
 		}
 
@@ -260,8 +302,34 @@ namespace VkApp
 		}
 	}
 
+	VkFormat SwapChainManager::FindDepthFormat()
+	{
+		return FindSupportedFormat({ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+	}
+
+	VkFormat SwapChainManager::FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+	{
+		for (VkFormat format : candidates) 
+		{
+			VkFormatProperties props;
+			vkGetPhysicalDeviceFormatProperties(s_InstanceManager->m_PhysicalDevice, format, &props);
+
+			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+				return format;
+			else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+				return format;
+		}
+
+		VKAPP_LOG_ERROR("Failed to find supported format!");
+		return VK_FORMAT_UNDEFINED;
+	}
+
 	void SwapChainManager::CleanUpSwapChain()
 	{
+		vkDestroyImageView(s_InstanceManager->m_Device, m_DepthImageView, nullptr);
+		vkDestroyImage(s_InstanceManager->m_Device, m_DepthImage, nullptr);
+		vkFreeMemory(s_InstanceManager->m_Device, m_DepthImageMemory, nullptr);
+
 		for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++)
 			vkDestroyFramebuffer(s_InstanceManager->m_Device, m_SwapChainFramebuffers[i], nullptr);
 

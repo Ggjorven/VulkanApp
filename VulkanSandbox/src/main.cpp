@@ -28,6 +28,7 @@ VkApp::Application* VkApp::CreateApplication(int argc, char* argv[])
 
 	// Add more application specs...
 	appInfo.WindowProperties.Name = "Custom";
+	appInfo.WindowProperties.VSync = false;
 
 	return new Sandbox(appInfo);
 }
